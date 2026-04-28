@@ -1,0 +1,21 @@
+# Vercel Deployment Checklist
+
+- [ ] All `.env.local.example` vars added in Vercel Project Settings
+- [ ] Preview environment variables point to **dev Supabase project**
+- [ ] Production environment variables point to **production Supabase project**
+- [ ] Supabase Auth redirect URLs include production URL:
+  - `https://<your-domain>/auth/callback`
+- [ ] Supabase Storage CORS allows:
+  - preview URL origins
+  - production URL origin
+- [ ] Applied production schema and migrations:
+  - `supabase/schema.sql`
+  - `supabase/migrations/20260421_add_vehicle_transmission.sql`
+  - `supabase/migrations/20260422_add_ai_parse_events.sql`
+- [ ] Google sign-in works on preview and production URLs
+- [ ] Vehicle create/update/delete works
+- [ ] Logbook create (form/AI/OCR) works
+- [ ] File upload to `logbook-attachments` works end-to-end
+- [ ] RLS check passes: user A cannot read user B vehicles/entries via direct query
+- [ ] Cost dashboard and service reminders load with production data
+- [ ] Sentry receives client and API errors in preview and production

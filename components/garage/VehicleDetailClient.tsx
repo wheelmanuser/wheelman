@@ -332,20 +332,22 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                                 </span>
                               </p>
                             )}
-                            {s.pct_remaining != null && !Number.isNaN(s.pct_remaining) && (
-                              <div className="mt-2 h-1.5 w-full overflow-hidden rounded-full bg-wm-s3">
-                                <div
-                                  className={`h-full rounded-full transition-all ${
+                          {s.pct_remaining != null && !Number.isNaN(s.pct_remaining) && (
+                            <div className="mt-2 h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
+                              <div
+                                className="h-full rounded-full transition-all"
+                                style={{
+                                  width: `${Math.min(100, Math.max(2, 100 - s.pct_remaining))}%`,
+                                  backgroundColor:
                                     s.is_overdue || s.pct_remaining <= 10
-                                      ? "bg-wm-red"
+                                      ? "#ef4444"
                                       : s.pct_remaining <= 30
-                                      ? "bg-wm-orange"
-                                      : "bg-wm-green"
-                                  }`}
-                                  style={{ width: `${Math.min(100, Math.max(0, 100 - s.pct_remaining))}%` }}
-                                />
-                              </div>
-                            )}
+                                      ? "#f97316"
+                                      : "#22c55e",
+                                }}
+                              />
+                            </div>
+                          )}
                           </div>
                           <div className="flex shrink-0 gap-3">
                             <button

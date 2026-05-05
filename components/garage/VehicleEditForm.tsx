@@ -23,6 +23,9 @@ export function VehicleEditForm({ vehicle }: Props) {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
+  const [odometer, setOdometer] = useState<string>(
+    vehicle.odometer_miles != null ? String(vehicle.odometer_miles) : "",
+  );
 
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleFormSchema),
@@ -43,6 +46,8 @@ export function VehicleEditForm({ vehicle }: Props) {
     setIsSubmitting(true);
     setSubmitError(null);
     try {
+      const odometerValue = odometer.trim() !== "" ? Number(odometer) : null;
+
       const { error } = await supabase
         .from("vehicles")
         .update({
@@ -55,6 +60,8 @@ export function VehicleEditForm({ vehicle }: Props) {
           vin: values.vin || null,
           purchase_price: values.purchase_price ?? null,
           estimated_miles_per_year: values.estimated_miles_per_year ?? null,
+          odometer_miles: odometerValue,
+          odometer_source: odometerValue != null ? "manual" : null,
         })
         .eq("id", vehicle.id);
 
@@ -69,11 +76,7 @@ export function VehicleEditForm({ vehicle }: Props) {
   };
 
   const onDelete = async () => {
-    if (
-      !window.confirm(
-        "Delete this vehicle and all related data? This cannot be undone.",
-      )
-    ) {
+    if (!window.confirm("Delete this vehicle and all related data? This cannot be undone.")) {
       return;
     }
     setDeleting(true);
@@ -126,6 +129,21 @@ export function VehicleEditForm({ vehicle }: Props) {
             </label>
           );
         })}
+
+        {/* Odometer — kept separate since it lives outside the shared schema */}
+        <label className="block">
+          <span className="mb-1 block text-sm text-wm-text2">Current Odometer (miles)</span>
+          <input
+            type="number"
+            value={odometer}
+            onChange={(e) => setOdometer(e.target.value)}
+            placeholder="e.g. 45000"
+            className="w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+          />
+          <span className="mt-1 block text-xs text-wm-text3">
+            Used to calculate miles remaining on service reminders.
+          </span>
+        </label>
 
         {submitError && (
           <p className="rounded-md border border-wm-red/40 bg-wm-red/10 px-3 py-2 text-sm text-wm-red">

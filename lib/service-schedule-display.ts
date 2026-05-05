@@ -16,6 +16,7 @@ export function enrichSchedules(
   const today = new Date();
 
   return schedules.map((s) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw = s as any;
     const isRecurring = raw.is_recurring !== false;
     const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
@@ -29,19 +30,14 @@ export function enrichSchedules(
     let is_overdue = false;
 
     if (isRecurring) {
-      // Next due by mileage
       if (lastMiles != null && intervalMiles != null) {
         computed_next_due_miles = lastMiles + intervalMiles;
       }
-
-      // Next due by date
       if (s.last_performed_date != null && intervalMonths != null) {
         const lastDate = new Date(s.last_performed_date);
         lastDate.setMonth(lastDate.getMonth() + intervalMonths);
         computed_next_due_date = lastDate.toISOString().split("T")[0];
       }
-
-      // Miles remaining + pct
       if (computed_next_due_miles != null && odometer != null) {
         miles_remaining = computed_next_due_miles - odometer;
         is_overdue = miles_remaining < 0;
@@ -52,8 +48,6 @@ export function enrichSchedules(
           }
         }
       }
-
-      // Date overdue (when no mileage data)
       if (computed_next_due_date != null && miles_remaining == null) {
         const dueDate = new Date(computed_next_due_date);
         is_overdue = dueDate < today;
@@ -61,7 +55,6 @@ export function enrichSchedules(
         pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
       }
     } else {
-      // One-time reminder
       if (raw.due_miles != null) {
         computed_next_due_miles = Number(raw.due_miles);
         if (odometer != null) {

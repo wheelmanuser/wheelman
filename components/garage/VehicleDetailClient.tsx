@@ -93,6 +93,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
   };
 
   const openEditDrawer = (s: ScheduleWithPct) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw = s as any;
     setEditingSchedule(s);
     reminderForm.reset({
@@ -180,7 +181,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
 
     let error;
     if (editingSchedule) {
-      ({ error } = await supabase.from("service_schedules").update(payload).eq("id", editingSchedule.id));
+      ({ error } = await supabase
+        .from("service_schedules")
+        .update(payload)
+        .eq("id", editingSchedule.id));
     } else {
       ({ error } = await supabase.from("service_schedules").insert({
         ...payload,
@@ -297,6 +301,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
               ) : (
                 <ul className="space-y-2">
                   {schedules.map((s) => {
+                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
                     const raw = s as any;
                     return (
                       <li
@@ -308,7 +313,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                             <div className="flex flex-wrap items-center gap-2">
                               <span className="font-medium text-wm-text">{s.service_name}</span>
                               <span className="rounded-full bg-wm-s2 px-2 py-0.5 text-xs text-wm-text3">
-                              {raw.is_recurring !== false ? "Recurring" : "One-time"}
+                                {raw.is_recurring !== false ? "Recurring" : "One-time"}
                               </span>
                               {s.is_overdue && (
                                 <span className="rounded-full bg-wm-red/20 px-2 py-0.5 text-xs text-wm-red">

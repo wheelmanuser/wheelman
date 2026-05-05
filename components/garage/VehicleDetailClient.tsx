@@ -342,7 +342,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                                       ? "bg-wm-orange"
                                       : "bg-wm-green"
                                   }`}
-                                  style={{ width: `${Math.min(100, Math.max(0, s.pct_remaining))}%` }}
+                                  style={{ width: `${Math.min(100, Math.max(0, 100 - s.pct_remaining))}%` }}
                                 />
                               </div>
                             )}

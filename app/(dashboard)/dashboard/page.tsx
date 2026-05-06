@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { ArrowRight, Bell } from "lucide-react";
 import { createClient } from "@/lib/supabase/server";
+export const dynamic = "force-dynamic";
 
 type VehicleRow = {
   id: string;

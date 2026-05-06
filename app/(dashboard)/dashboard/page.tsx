@@ -22,6 +22,12 @@ type LogbookRow = {
   category: "maintenance" | "modification" | "other";
 };
 
+type ReminderRow = {
+  vehicle_id: string;
+  service_name: string;
+  pct_remaining: number | null;
+};
+
 function greetingForNow() {
   const hour = new Date().getHours();
   if (hour < 12) return "Good morning";
@@ -31,18 +37,8 @@ function greetingForNow() {
 
 function ReminderTone({ pct }: { pct: number | null }) {
   const className =
-    pct == null
-      ? "text-wm-text2"
-      : pct <= 10
-      ? "text-wm-red"
-      : pct <= 30
-      ? "text-wm-orange"
-      : "text-wm-green";
-  return (
-    <span className={className}>
-      {pct == null ? "—" : `${Math.round(pct)}% left`}
-    </span>
-  );
+    pct == null ? "text-wm-text2" : pct <= 10 ? "text-wm-red" : pct <= 30 ? "text-wm-orange" : "text-wm-green";
+  return <span className={className}>{pct == null ? "—" : `${Math.round(pct)}% left`}</span>;
 }
 
 function SectionSkeleton() {
@@ -66,12 +62,25 @@ async function GreetingHeader() {
   let displayName = user?.email?.split("@")[0] ?? "Driver";
 
   if (user) {
-    const { data: profile } = await supabase
+    const profileQuery = (supabase as unknown as {
+      from: (
+        table: "users",
+      ) => {
+        select: (columns: string) => {
+          eq: (column: string, value: string) => {
+            maybeSingle: () => Promise<{
+              data: { display_name?: string | null } | null;
+            }>;
+          };
+        };
+      };
+    })
       .from("users")
       .select("display_name")
       .eq("id", user.id)
       .maybeSingle();
-    displayName = (profile as { display_name?: string | null } | null)?.display_name ?? displayName;
+    const { data: profile } = await profileQuery;
+    displayName = profile?.display_name ?? displayName;
   }
 
   return (
@@ -133,9 +142,7 @@ async function GarageSection() {
                 {v.year} {v.make} {v.model}
               </p>
               <p className="mt-1 text-xs text-wm-text2">
-                {v.odometer_miles != null
-                  ? `${Math.round(v.odometer_miles)} mi`
-                  : "Odometer —"}
+                {v.odometer_miles != null ? `${Math.round(v.odometer_miles)} mi` : "Odometer —"}
               </p>
             </Link>
           ))}
@@ -157,10 +164,21 @@ async function RecentActivitySection() {
   const vehicleIds = Array.from(new Set(entries.map((e) => e.vehicle_id)));
   const vehicleMap = new Map<string, string>();
   if (vehicleIds.length > 0) {
-    const { data: vehicles } = await supabase
+    const vehiclesQuery = (supabase as unknown as {
+      from: (
+        table: "vehicles",
+      ) => {
+        select: (columns: string) => {
+          in: (column: string, ids: string[]) => Promise<{
+            data: Array<{ id: string; year: number; make: string; model: string }> | null;
+          }>;
+        };
+      };
+    })
       .from("vehicles")
       .select("id,year,make,model")
       .in("id", vehicleIds);
+    const { data: vehicles } = await vehiclesQuery;
     for (const v of vehicles ?? []) {
       vehicleMap.set(v.id, `${v.year} ${v.make} ${v.model}`);
     }
@@ -192,9 +210,7 @@ async function RecentActivitySection() {
                   {e.event_date} · {e.category}
                 </p>
               </div>
-              <p className="ml-3 text-sm text-wm-gold">
-                ${Number(e.total_cost ?? 0).toFixed(2)}
-              </p>
+              <p className="ml-3 text-sm text-wm-gold">${Number(e.total_cost ?? 0).toFixed(2)}</p>
             </Link>
           ))
         )}
@@ -205,86 +221,53 @@ async function RecentActivitySection() {
 
 async function ServiceRemindersSection() {
   const supabase = createClient();
-
-  const { data: schedules } = await supabase
-    .from("service_schedules")
-    .select("vehicle_id,service_name,interval_miles,interval_months,last_performed_miles,last_performed_date,is_active")
-    .eq("is_active", true);
-
-  const vehicleIds = Array.from(new Set((schedules ?? []).map((s) => s.vehicle_id)));
-
-  const vehicleMap = new Map<string, { year: number; make: string; model: string; odometer_miles: number | null }>();
-  if (vehicleIds.length > 0) {
-    const { data: vehicles } = await supabase
-      .from("vehicles")
-      .select("id,year,make,model,odometer_miles")
-      .in("id", vehicleIds);
-    for (const v of vehicles ?? []) {
-      vehicleMap.set(v.id, v);
-    }
-  }
-
-  const today = new Date();
-
-  const enriched = (schedules ?? []).map((s) => {
-    const vehicle = vehicleMap.get(s.vehicle_id);
-    const odometer = vehicle?.odometer_miles != null ? Number(vehicle.odometer_miles) : null;
-    const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
-    const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
-    const intervalMonths = s.interval_months != null ? Number(s.interval_months) : null;
-
-    let pct_remaining: number | null = null;
-    let is_overdue = false;
-
-    if (lastMiles != null && intervalMiles != null && odometer != null) {
-      const nextDue = lastMiles + intervalMiles;
-      const milesRemaining = nextDue - odometer;
-      is_overdue = milesRemaining < 0;
-      pct_remaining = (milesRemaining / intervalMiles) * 100;
-    } else if (s.last_performed_date != null && intervalMonths != null) {
-      const lastDate = new Date(s.last_performed_date);
-      lastDate.setMonth(lastDate.getMonth() + intervalMonths);
-      is_overdue = lastDate < today;
-      const daysUntil = (lastDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-      pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
-    }
-
-    return { ...s, vehicle, pct_remaining, is_overdue };
-  });
-
-  const sorted = enriched
-    .filter((r) => r.pct_remaining != null || r.is_overdue)
-    .sort((a, b) => (a.pct_remaining ?? 0) - (b.pct_remaining ?? 0))
-    .slice(0, 5);
+  const remindersQuery = (supabase as unknown as {
+    from: (
+      table: "vw_service_reminders",
+    ) => {
+      select: (columns: string) => {
+        order: (
+          column: string,
+          opts: { ascending: boolean },
+        ) => {
+          limit: (n: number) => Promise<{
+            data: Array<
+              ReminderRow & { year: number; make: string; model: string }
+            > | null;
+          }>;
+        };
+      };
+    };
+  })
+    .from("vw_service_reminders")
+    .select("vehicle_id,service_name,pct_remaining,year,make,model")
+    .order("pct_remaining", { ascending: true })
+    .limit(3);
+  const { data } = await remindersQuery;
+  const reminders = (data ?? []) as Array<
+    ReminderRow & { year: number; make: string; model: string }
+  >;
 
   return (
     <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
       <h3 className="mb-4 text-sm font-semibold text-wm-text">Service Reminders</h3>
       <div className="space-y-2">
-        {sorted.length === 0 ? (
+        {reminders.length === 0 ? (
           <p className="text-sm text-wm-text2">No active reminders.</p>
         ) : (
-          sorted.map((r, idx) => (
+          reminders.map((r, idx) => (
             <Link
               key={`${r.vehicle_id}-${r.service_name}-${idx}`}
               href={`/garage/${r.vehicle_id}`}
-              className={`flex items-center justify-between rounded-lg border bg-wm-s2 px-3 py-2 ${
-                r.is_overdue ? "border-wm-red/40" : "border-wm-border"
-              }`}
+              className="flex items-center justify-between rounded-lg border border-wm-border bg-wm-s2 px-3 py-2"
             >
               <div>
                 <p className="text-sm text-wm-text">{r.service_name}</p>
                 <p className="text-xs text-wm-text3">
-                  {r.vehicle
-                    ? `${r.vehicle.year} ${r.vehicle.make} ${r.vehicle.model}`
-                    : ""}
+                  {r.year} {r.make} {r.model}
                 </p>
               </div>
-              {r.is_overdue ? (
-                <span className="text-xs font-medium text-wm-red">Overdue</span>
-              ) : (
-                <ReminderTone pct={r.pct_remaining} />
-              )}
+              <ReminderTone pct={r.pct_remaining} />
             </Link>
           ))
         )}
@@ -306,9 +289,7 @@ async function QuickActionsSection() {
   const logServiceHref = singleVehicle
     ? `/garage/${singleVehicle.id}/logbook/new`
     : "/garage";
-  const viewCostsHref = primaryVehicle
-    ? `/garage/${primaryVehicle.id}/costs`
-    : "/garage";
+  const viewCostsHref = primaryVehicle ? `/garage/${primaryVehicle.id}/costs` : "/garage";
 
   return (
     <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
@@ -352,15 +333,19 @@ export default async function DashboardPage() {
       <Suspense fallback={<SectionSkeleton />}>
         <GreetingHeader />
       </Suspense>
+
       <Suspense fallback={<SectionSkeleton />}>
         <GarageSection />
       </Suspense>
+
       <Suspense fallback={<SectionSkeleton />}>
         <RecentActivitySection />
       </Suspense>
+
       <Suspense fallback={<SectionSkeleton />}>
         <ServiceRemindersSection />
       </Suspense>
+
       <Suspense fallback={<SectionSkeleton />}>
         <QuickActionsSection />
       </Suspense>

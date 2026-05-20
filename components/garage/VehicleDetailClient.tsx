@@ -10,9 +10,11 @@ import {
   statusToneClass,
   type ScheduleWithPct,
 } from "@/lib/service-schedule-display";
+import { VehicleLogbookClient } from "@/components/logbook/VehicleLogbookClient";
+import { VehicleCostsClient } from "@/components/garage/VehicleCostsClient";
 import type { Vehicle } from "@/types/database";
 
-type Tab = "overview";
+type Tab = "overview" | "logbook" | "costs";
 
 type ReminderForm = {
   service_name: string;
@@ -344,25 +346,16 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
       </section>
 
       <div className="mt-8 flex gap-6 border-b border-wm-border">
-        <button
-          type="button"
-          onClick={() => setTab("overview")}
-          className={`pb-2 text-sm font-medium ${tab === "overview" ? "border-b-2 border-wm-accent text-wm-text" : "text-wm-text2 hover:text-wm-text"}`}
-        >
-          Overview
-        </button>
-        <Link
-          href={`/garage/${vehicle.id}/logbook`}
-          className="pb-2 text-sm font-medium text-wm-text2 hover:text-wm-text"
-        >
-          Logbook
-        </Link>
-        <Link
-          href={`/garage/${vehicle.id}/costs`}
-          className="pb-2 text-sm font-medium text-wm-text2 hover:text-wm-text"
-        >
-          Costs
-        </Link>
+        {(["overview", "logbook", "costs"] as const).map((id) => (
+          <button
+            key={id}
+            type="button"
+            onClick={() => setTab(id)}
+            className={`pb-2 text-sm font-medium ${tab === id ? "border-b-2 border-wm-accent text-wm-text" : "text-wm-text2 hover:text-wm-text"}`}
+          >
+            {id[0].toUpperCase() + id.slice(1)}
+          </button>
+        ))}
       </div>
 
       <div className="mt-6">
@@ -495,6 +488,13 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
           </div>
         )}
 
+        {tab === "logbook" && (
+          <VehicleLogbookClient vehicleId={vehicle.id} vehicleTitle={title} />
+        )}
+
+        {tab === "costs" && (
+          <VehicleCostsClient vehicleId={vehicle.id} odometerMiles={vehicle.odometer_miles} />
+        )}
       </div>
 
       {doneModalOpen && doneSchedule && (

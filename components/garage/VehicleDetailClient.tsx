@@ -12,7 +12,7 @@ import {
 } from "@/lib/service-schedule-display";
 import type { Vehicle } from "@/types/database";
 
-type Tab = "overview" | "logbook" | "costs";
+type Tab = "overview";
 
 type ReminderForm = {
   service_name: string;
@@ -344,16 +344,25 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
       </section>
 
       <div className="mt-8 flex gap-6 border-b border-wm-border">
-        {([["overview", "Overview"], ["logbook", "Logbook"], ["costs", "Costs"]] as const).map(([id, label]) => (
-          <button
-            key={id}
-            type="button"
-            onClick={() => setTab(id)}
-            className={`pb-2 text-sm font-medium ${tab === id ? "border-b-2 border-wm-accent text-wm-text" : "text-wm-text2 hover:text-wm-text"}`}
-          >
-            {label}
-          </button>
-        ))}
+        <button
+          type="button"
+          onClick={() => setTab("overview")}
+          className={`pb-2 text-sm font-medium ${tab === "overview" ? "border-b-2 border-wm-accent text-wm-text" : "text-wm-text2 hover:text-wm-text"}`}
+        >
+          Overview
+        </button>
+        <Link
+          href={`/garage/${vehicle.id}/logbook`}
+          className="pb-2 text-sm font-medium text-wm-text2 hover:text-wm-text"
+        >
+          Logbook
+        </Link>
+        <Link
+          href={`/garage/${vehicle.id}/costs`}
+          className="pb-2 text-sm font-medium text-wm-text2 hover:text-wm-text"
+        >
+          Costs
+        </Link>
       </div>
 
       <div className="mt-6">
@@ -486,37 +495,6 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
           </div>
         )}
 
-        {tab === "logbook" && (
-          <div className="rounded-lg border border-wm-border bg-wm-s1 p-6">
-            <p className="text-sm text-wm-text2">View and manage all logbook entries for this vehicle.</p>
-            <div className="mt-4 flex gap-3">
-              <Link
-                href={`/garage/${vehicle.id}/logbook`}
-                className="rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-sm font-medium text-wm-text hover:bg-wm-s3"
-              >
-                Open Logbook →
-              </Link>
-              <Link
-                href={`/garage/${vehicle.id}/logbook/new`}
-                className="rounded-md bg-wm-accent px-3 py-2 text-sm font-medium text-white"
-              >
-                New Entry
-              </Link>
-            </div>
-          </div>
-        )}
-
-        {tab === "costs" && (
-          <div className="rounded-lg border border-wm-border bg-wm-s1 p-6">
-            <p className="text-sm text-wm-text2">Open the full cost dashboard for this vehicle.</p>
-            <Link
-              href={`/garage/${vehicle.id}/costs`}
-              className="mt-4 inline-block text-sm font-medium text-wm-accent hover:underline"
-            >
-              Go to Costs →
-            </Link>
-          </div>
-        )}
       </div>
 
       {doneModalOpen && doneSchedule && (

@@ -138,6 +138,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
       .from("service_schedules")
       .select("*")
       .eq("vehicle_id", vehicle.id)
+      .eq("is_active", true)
       .order("service_name");
     if (!error && data) setSchedules(enrichSchedules(vehicle, data));
   };

@@ -6,7 +6,7 @@ import { Plus } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleCard } from "@/components/garage/VehicleCard";
 import { useVehicleStore } from "@/stores/vehicleStore";
-import { enrichSchedules, type ScheduleWithPct } from "@/lib/service-schedule-display";
+import type { ScheduleWithPct } from "@/lib/service-schedule-display";
 import type { Vehicle } from "@/types/database";
 
 type FilterMode = "all" | "due";
@@ -65,15 +65,78 @@ export default function GaragePage() {
       .eq("is_active", true)
       .then(({ data }) => {
         if (!data) return;
+        const today = new Date();
         const grouped: VehicleReminders[] = [];
+
         for (const vehicle of vehicles) {
-          const raw = data.filter((s) => s.vehicle_id === vehicle.id);
-          const enriched = enrichSchedules(vehicle, raw);
-          const due = enriched.filter(
-            (s) => s.is_overdue || (s.pct_remaining != null && s.pct_remaining <= 30),
-          );
+          const vehicleSchedules = data.filter((s) => s.vehicle_id === vehicle.id);
+          const odometer = vehicle.odometer_miles != null ? Number(vehicle.odometer_miles) : null;
+          const due: ScheduleWithPct[] = [];
+
+          for (const s of vehicleSchedules) {
+            // eslint-disable-next-line @typescript-eslint/no-explicit-any
+            const raw = s as any;
+            const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
+            const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
+            const intervalMonths = s.interval_months != null ? Number(s.interval_months) : null;
+
+            let miles_remaining: number | null = null;
+            let pct_remaining: number | null = null;
+            let computed_next_due_miles: number | null = null;
+            let computed_next_due_date: string | null = null;
+            let is_overdue = false;
+
+            if (lastMiles != null && intervalMiles != null && odometer != null) {
+              computed_next_due_miles = lastMiles + intervalMiles;
+              miles_remaining = computed_next_due_miles - odometer;
+              is_overdue = miles_remaining < 0;
+              pct_remaining = (miles_remaining / intervalMiles) * 100;
+            } else if (s.last_performed_date != null && intervalMonths != null) {
+              const lastDate = new Date(s.last_performed_date);
+              lastDate.setMonth(lastDate.getMonth() + intervalMonths);
+              computed_next_due_date = lastDate.toISOString().split("T")[0];
+              is_overdue = lastDate < today;
+              const daysUntil = (lastDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+              pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
+            } else if (raw.due_miles != null && odometer != null) {
+              computed_next_due_miles = Number(raw.due_miles);
+              miles_remaining = computed_next_due_miles - odometer;
+              is_overdue = miles_remaining < 0;
+              pct_remaining = is_overdue ? 0 : Math.min(100, (miles_remaining / 500) * 100);
+            } else if (raw.due_date != null) {
+              computed_next_due_date = raw.due_date;
+              const dueDate = new Date(raw.due_date);
+              is_overdue = dueDate < today;
+              const daysUntil = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+              pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
+            }
+
+            console.log("[ServiceDue]", s.service_name, {
+              vehicle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+              lastMiles,
+              intervalMiles,
+              odometer,
+              computed_next_due_miles,
+              miles_remaining,
+              pct_remaining,
+              is_overdue,
+            });
+
+            if (is_overdue || (pct_remaining != null && pct_remaining <= 30)) {
+              due.push({
+                ...s,
+                miles_remaining,
+                pct_remaining,
+                computed_next_due_miles,
+                computed_next_due_date,
+                is_overdue,
+              });
+            }
+          }
+
           if (due.length > 0) grouped.push({ vehicle, schedules: due });
         }
+
         setDueReminders(grouped);
       });
   // eslint-disable-next-line react-hooks/exhaustive-deps

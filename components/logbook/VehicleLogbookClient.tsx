@@ -92,13 +92,7 @@ export function VehicleLogbookClient({
 
   return (
     <div>
-      <Link
-        href={`/garage/${vehicleId}`}
-        className="text-sm text-wm-text2 hover:text-wm-text"
-      >
-        ← Back to vehicle
-      </Link>
-      <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+      <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
           <h2 className="text-2xl font-semibold text-wm-text">Logbook</h2>
           <p className="text-sm text-wm-text2">

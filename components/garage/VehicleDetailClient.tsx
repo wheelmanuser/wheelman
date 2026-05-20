@@ -426,24 +426,19 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                                 <span className={statusToneClass(s.pct_remaining, s.is_overdue)}>
                                   {Math.round(s.miles_remaining).toLocaleString()}
                                 </span>
+                                {s.pct_remaining != null && !Number.isNaN(s.pct_remaining) && (
+                                  <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                                    s.is_overdue
+                                      ? "bg-wm-red/20 text-wm-red"
+                                      : s.pct_remaining <= 30
+                                      ? "bg-wm-orange/20 text-wm-orange"
+                                      : "bg-wm-green/20 text-wm-green"
+                                  }`}>
+                                    {s.is_overdue ? "Overdue" : s.pct_remaining <= 30 ? "Due soon" : "Good"}
+                                  </span>
+                                )}
                               </p>
                             )}
-                          {s.pct_remaining != null && !Number.isNaN(s.pct_remaining) && (
-                            <div className="mt-2 h-2 w-full overflow-hidden rounded-full" style={{ backgroundColor: "rgba(255,255,255,0.1)" }}>
-                              <div
-                                className="h-full rounded-full transition-all"
-                                style={{
-                                  width: `${Math.min(100, Math.max(2, 100 - s.pct_remaining))}%`,
-                                  backgroundColor:
-                                    s.is_overdue || s.pct_remaining <= 10
-                                      ? "#ef4444"
-                                      : s.pct_remaining <= 30
-                                      ? "#f97316"
-                                      : "#22c55e",
-                                }}
-                              />
-                            </div>
-                          )}
                           </div>
                           <div className="flex shrink-0 gap-3">
                             <button

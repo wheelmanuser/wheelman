@@ -40,6 +40,7 @@ export interface Vehicle {
   year: number;
   make: string;
   model: string;
+  nickname: string | null;
   trim: string | null;
   transmission: string | null;
   color: string | null;

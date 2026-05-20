@@ -43,7 +43,7 @@ export function EntryCard({ entry }: { entry: LogbookEntryWithDetails }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">
-            <h4 className="font-headline truncate text-sm font-semibold text-wm-text">{entry.title}</h4>
+            <h4 className="font-headline truncate text-base font-semibold text-wm-text">{entry.title}</h4>
             <span className={`label-technical rounded-sm px-2 py-0.5 ${meta.bg} ${meta.text}`}>
               {entry.category}
             </span>

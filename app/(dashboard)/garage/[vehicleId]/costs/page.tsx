@@ -2,6 +2,7 @@ import { notFound } from "next/navigation";
 import { MonthlySpendChart } from "@/components/garage/MonthlySpendChart";
 import { Icon } from "@/components/ui/Icon";
 import { createClient } from "@/lib/supabase/server";
+import { vehicleDisplayName } from "@/lib/vehicle-display";
 import type { LogbookCategory, Vehicle } from "@/types/database";
 
 type CostEntry = {
@@ -35,7 +36,7 @@ export default async function CostsPage({ params }: PageProps) {
 
   const { data: vehicle, error: vehicleError } = await supabase
     .from("vehicles")
-    .select("id,year,make,model,odometer_miles")
+    .select("id,year,make,model,nickname,odometer_miles")
     .eq("id", params.vehicleId)
     .single();
 
@@ -93,14 +94,14 @@ export default async function CostsPage({ params }: PageProps) {
   });
 
   const recent = entries.slice(0, 10);
-  const v = vehicle as Pick<Vehicle, "year" | "make" | "model">;
+  const v = vehicle as Pick<Vehicle, "year" | "make" | "model" | "nickname">;
 
   return (
     <div className="space-y-6">
       <header>
         <h2 className="text-2xl font-semibold text-wm-text">Cost Dashboard</h2>
         <p className="mt-1 text-sm text-wm-text2">
-          {v.year} {v.make} {v.model}
+          {vehicleDisplayName(v)}
         </p>
       </header>
 

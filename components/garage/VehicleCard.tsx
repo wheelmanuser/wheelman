@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import type { Vehicle } from "@/types/database";
+import { vehicleDisplayName } from "@/lib/vehicle-display";
 
 type VehicleCardProps = {
   vehicle: Vehicle;
@@ -14,7 +15,7 @@ export function VehicleCard({
   hasDevice,
   serviceDueSoon,
 }: VehicleCardProps) {
-  const title = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
+  const title = vehicleDisplayName(vehicle);
 
   return (
     <Link
@@ -24,7 +25,7 @@ export function VehicleCard({
       <div className="flex items-start justify-between gap-2">
         <div>
           <h3 className="text-lg font-light tracking-wide text-wm-text">{title}</h3>
-          <p className="mt-1 text-xs uppercase tracking-wider text-wm-text3">
+          <p className="mt-1 text-sm uppercase tracking-wider text-wm-text3">
             {vehicle.color ?? "Colour N/A"} ·{" "}
             {vehicle.transmission ?? vehicle.trim ?? "Transmission N/A"}
           </p>

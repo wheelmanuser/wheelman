@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleCard } from "@/components/garage/VehicleCard";
 import { useVehicleStore } from "@/stores/vehicleStore";
@@ -210,7 +211,7 @@ export default function GaragePage() {
                   href={`/garage/${vehicle.id}`}
                   className="mb-3 block font-headline text-sm font-semibold text-wm-text hover:text-wm-accent"
                 >
-                  {vehicle.year} {vehicle.make} {vehicle.model}
+                  {vehicleDisplayName(vehicle)}
                 </Link>
                 <ul className="space-y-2">
                   {schedules.map((s) => (

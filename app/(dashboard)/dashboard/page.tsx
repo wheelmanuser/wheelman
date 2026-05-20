@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { Suspense } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
@@ -9,6 +10,7 @@ type VehicleRow = {
   year: number;
   make: string;
   model: string;
+  nickname: string | null;
   odometer_miles: number | null;
   is_primary: boolean;
 };
@@ -27,7 +29,7 @@ type DueReminder = {
   id: string;
   vehicle_id: string;
   service_name: string;
-  vehicle: { year: number; make: string; model: string };
+  vehicle: { year: number; make: string; model: string; nickname: string | null };
   miles_remaining: number | null;
   pct_remaining: number | null;
   is_overdue: boolean;
@@ -108,7 +110,7 @@ async function GarageSection() {
   const supabase = createClient();
   const { data } = await supabase
     .from("vehicles")
-    .select("id,year,make,model,odometer_miles,is_primary")
+    .select("id,year,make,model,nickname,odometer_miles,is_primary")
     .order("created_at", { ascending: false });
   const vehicles = (data ?? []) as VehicleRow[];
   const shown = vehicles.slice(0, 3);
@@ -138,8 +140,8 @@ async function GarageSection() {
               href={`/garage/${v.id}`}
               className="border border-wm-border border-l-2 border-l-wm-accent-dark bg-wm-s2 p-3 transition-colors hover:border-l-wm-gold"
             >
-              <p className="font-headline text-sm font-medium text-wm-text">
-                {v.year} {v.make} {v.model}
+              <p className="font-headline text-base font-medium text-wm-text">
+                {vehicleDisplayName(v)}
               </p>
               <p className="mt-1 text-xs text-wm-text2">
                 {v.odometer_miles != null ? `${Math.round(v.odometer_miles)} mi` : "Odometer —"}
@@ -176,11 +178,11 @@ async function RecentActivitySection() {
       };
     })
       .from("vehicles")
-      .select("id,year,make,model")
+      .select("id,year,make,model,nickname")
       .in("id", vehicleIds);
     const { data: vehicles } = await vehiclesQuery;
     for (const v of vehicles ?? []) {
-      vehicleMap.set(v.id, `${v.year} ${v.make} ${v.model}`);
+      vehicleMap.set(v.id, vehicleDisplayName(v));
     }
   }
 
@@ -203,7 +205,7 @@ async function RecentActivitySection() {
               className="flex items-center justify-between border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s2 px-3 py-2 transition-colors hover:border-l-wm-gold"
             >
               <div className="min-w-0">
-                <p className="truncate text-sm text-wm-text">
+                <p className="truncate text-base text-wm-text">
                   {vehicleMap.get(e.vehicle_id) ?? "Vehicle"} · {e.title}
                 </p>
                 <p className="label-technical mt-0.5 text-wm-text3">
@@ -225,7 +227,7 @@ async function ServiceRemindersSection() {
 
   const { data: vehicleData } = await supabase
     .from("vehicles")
-    .select("id,year,make,model,odometer_miles");
+    .select("id,year,make,model,nickname,odometer_miles");
   const vehicles = (vehicleData ?? []) as VehicleRow[];
   const vehicleMap = new Map(vehicles.map((v) => [v.id, v]));
 
@@ -299,7 +301,7 @@ async function ServiceRemindersSection() {
           id: s.id,
           vehicle_id: s.vehicle_id,
           service_name: s.service_name,
-          vehicle: { year: vehicle.year, make: vehicle.make, model: vehicle.model },
+          vehicle: { year: vehicle.year, make: vehicle.make, model: vehicle.model, nickname: vehicle.nickname ?? null },
           miles_remaining,
           pct_remaining,
           is_overdue,
@@ -332,7 +334,7 @@ async function ServiceRemindersSection() {
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="font-headline text-sm font-medium text-wm-text">{r.service_name}</p>
+                  <p className="font-headline text-base font-medium text-wm-text">{r.service_name}</p>
                   <span className={`label-technical rounded-sm px-2 py-0.5 ${
                     r.is_overdue ? "bg-wm-red/20 text-wm-red" : "bg-wm-gold/20 text-wm-gold"
                   }`}>
@@ -340,7 +342,7 @@ async function ServiceRemindersSection() {
                   </span>
                 </div>
                 <p className="label-technical mt-0.5 text-wm-text3">
-                  {r.vehicle.year} {r.vehicle.make} {r.vehicle.model}
+                  {vehicleDisplayName(r.vehicle)}
                 </p>
               </div>
               {r.miles_remaining != null && (

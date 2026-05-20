@@ -34,6 +34,11 @@ const config: Config = {
         headline: ["var(--font-headline)", "sans-serif"],
         body: ["var(--font-body)", "sans-serif"],
       },
+      fontSize: {
+        "body-md": ["18px", { lineHeight: "1.6" }],
+        "headline-sm": ["26px", { lineHeight: "1.2" }],
+        "headline-md": ["34px", { lineHeight: "1.1" }],
+      },
     },
   },
   plugins: [],

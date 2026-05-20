@@ -22,6 +22,7 @@ export default function GarageAddPage() {
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleFormSchema),
     defaultValues: {
+      nickname: "",
       year: new Date().getFullYear(),
       make: "",
       model: "",
@@ -46,6 +47,7 @@ export default function GarageAddPage() {
         .from("vehicles")
         .insert({
           user_id: user.id,
+          nickname: values.nickname || null,
           year: values.year,
           make: values.make,
           model: values.model,
@@ -86,6 +88,16 @@ export default function GarageAddPage() {
           onSubmit={form.handleSubmit(onSubmit)}
           className="mt-6 space-y-4 border border-wm-border bg-wm-s1 p-6"
         >
+          <label className="block">
+            <span className="label-technical mb-1 block text-wm-text3">Nickname (optional)</span>
+            <input
+              type="text"
+              {...form.register("nickname")}
+              placeholder="e.g. The Beast, Track Car"
+              className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+            />
+          </label>
+
           {VEHICLE_FORM_FIELDS.map((field) => {
             const errorMessage = form.formState.errors[field.name]?.message;
             const isNumber = field.type === "number";

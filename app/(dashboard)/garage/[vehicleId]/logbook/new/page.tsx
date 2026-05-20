@@ -11,7 +11,7 @@ export default async function LogbookNewPage({ params }: PageProps) {
   const supabase = createClient();
   const { data: vehicle } = await supabase
     .from("vehicles")
-    .select("id,year,make,model,odometer_miles")
+    .select("id,year,make,model,nickname,odometer_miles")
     .eq("id", params.vehicleId)
     .single();
 
@@ -21,7 +21,7 @@ export default async function LogbookNewPage({ params }: PageProps) {
     <NewEntryModesClient
       vehicle={vehicle as Pick<
         Vehicle,
-        "id" | "year" | "make" | "model" | "odometer_miles"
+        "id" | "year" | "make" | "model" | "nickname" | "odometer_miles"
       >}
     />
   );

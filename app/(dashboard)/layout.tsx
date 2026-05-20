@@ -72,7 +72,7 @@ export default function DashboardLayout({
               width={140}
               height={36}
               priority
-              className="h-8 w-auto"
+              className="h-8 w-auto object-contain"
             />
             <button
               type="button"
@@ -95,7 +95,7 @@ export default function DashboardLayout({
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 border-l-2 px-3 py-2.5 text-xs uppercase tracking-widest transition-colors",
+                  "flex items-center gap-3 border-l-2 px-3 py-2.5 text-sm uppercase tracking-widest transition-colors",
                   active
                     ? "border-wm-gold bg-wm-accent-dark/30 text-wm-text"
                     : "border-transparent text-wm-text2 hover:bg-wm-s2/60 hover:text-wm-text",

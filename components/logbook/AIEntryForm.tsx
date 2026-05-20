@@ -13,7 +13,7 @@ export function AIEntryForm({
   onEditInForm,
   seedText,
 }: {
-  vehicle: Pick<Vehicle, "id" | "year" | "make" | "model" | "odometer_miles">;
+  vehicle: Pick<Vehicle, "id" | "year" | "make" | "model" | "nickname" | "odometer_miles">;
   onEditInForm: (draft: ParsedPayload) => void;
   seedText?: string;
 }) {

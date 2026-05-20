@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { EntryForm, type EntryFormValues } from "@/components/logbook/EntryForm";
 import { AIEntryForm } from "@/components/logbook/AIEntryForm";
 import { OCRScanner } from "@/components/logbook/OCRScanner";
+import { vehicleDisplayName } from "@/lib/vehicle-display";
 import type { Vehicle } from "@/types/database";
 
 type EntryMode = "form" | "ai" | "ocr";
@@ -24,7 +25,7 @@ function coerceMode(value: string | null): EntryMode {
 export function NewEntryModesClient({
   vehicle,
 }: {
-  vehicle: Pick<Vehicle, "id" | "year" | "make" | "model" | "odometer_miles">;
+  vehicle: Pick<Vehicle, "id" | "year" | "make" | "model" | "nickname" | "odometer_miles">;
 }) {
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -37,7 +38,7 @@ export function NewEntryModesClient({
     `${pathname}?mode=${nextMode}`;
 
   const title = useMemo(
-    () => `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+    () => vehicleDisplayName(vehicle),
     [vehicle],
   );
 

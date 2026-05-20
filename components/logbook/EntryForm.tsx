@@ -9,6 +9,7 @@ import { z } from "zod";
 import { createClient } from "@/lib/supabase/client";
 import { PartsEditor } from "@/components/logbook/PartsEditor";
 import { saveLogbookEntry, type PartDraft } from "@/lib/logbook-save";
+import { vehicleDisplayName } from "@/lib/vehicle-display";
 import type { LogbookCategory, LogbookEntryMode, Vehicle } from "@/types/database";
 
 const schema = z.object({
@@ -29,7 +30,7 @@ export function EntryForm({
   mode = "form",
   initialValues,
 }: {
-  vehicle: Pick<Vehicle, "id" | "year" | "make" | "model" | "odometer_miles">;
+  vehicle: Pick<Vehicle, "id" | "year" | "make" | "model" | "nickname" | "odometer_miles">;
   mode?: LogbookEntryMode;
   initialValues?: Partial<EntryFormValues> & { parts?: PartDraft[] };
 }) {
@@ -134,7 +135,7 @@ export function EntryForm({
     }
   };
 
-  const vehicleLabel = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
+  const vehicleLabel = vehicleDisplayName(vehicle);
 
   return (
     <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">

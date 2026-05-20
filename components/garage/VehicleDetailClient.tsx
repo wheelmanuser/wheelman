@@ -13,6 +13,7 @@ import {
 import { VehicleLogbookClient } from "@/components/logbook/VehicleLogbookClient";
 import { VehicleCostsClient } from "@/components/garage/VehicleCostsClient";
 import { Icon } from "@/components/ui/Icon";
+import { vehicleDisplayName } from "@/lib/vehicle-display";
 import type { Vehicle } from "@/types/database";
 
 type Tab = "overview" | "logbook" | "costs";
@@ -55,7 +56,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
   const [doneSaving, setDoneSaving] = useState(false);
   const [doneError, setDoneError] = useState<string | null>(null);
 
-  const title = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
+  const title = vehicleDisplayName(vehicle);
 
   const dueCount = useMemo(
     () => schedules.filter((s) => s.is_overdue || (s.pct_remaining != null && s.pct_remaining <= 20)).length,

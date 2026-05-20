@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 export const vehicleFormSchema = z.object({
+  nickname: z.string().trim().optional(),
   year: z.number().int().min(1900).max(2030),
   make: z.string().trim().min(1, "Make is required"),
   model: z.string().trim().min(1, "Model is required"),

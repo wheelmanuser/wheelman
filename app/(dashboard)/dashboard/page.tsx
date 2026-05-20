@@ -22,10 +22,24 @@ type LogbookRow = {
   category: "maintenance" | "modification" | "other";
 };
 
-type ReminderRow = {
+type ScheduleRow = {
+  id: string;
   vehicle_id: string;
   service_name: string;
+  interval_miles: number | null;
+  interval_months: number | null;
+  last_performed_miles: number | null;
+  last_performed_date: string | null;
+};
+
+type DueReminder = {
+  id: string;
+  vehicle_id: string;
+  service_name: string;
+  vehicle: { year: number; make: string; model: string };
+  miles_remaining: number | null;
   pct_remaining: number | null;
+  is_overdue: boolean;
 };
 
 function greetingForNow() {
@@ -35,11 +49,6 @@ function greetingForNow() {
   return "Good evening";
 }
 
-function ReminderTone({ pct }: { pct: number | null }) {
-  const className =
-    pct == null ? "text-wm-text2" : pct <= 10 ? "text-wm-red" : pct <= 30 ? "text-wm-orange" : "text-wm-green";
-  return <span className={className}>{pct == null ? "—" : `${Math.round(pct)}% left`}</span>;
-}
 
 function SectionSkeleton() {
   return (
@@ -221,57 +230,117 @@ async function RecentActivitySection() {
 
 async function ServiceRemindersSection() {
   const supabase = createClient();
-  const remindersQuery = (supabase as unknown as {
-    from: (
-      table: "vw_service_reminders",
-    ) => {
-      select: (columns: string) => {
-        order: (
-          column: string,
-          opts: { ascending: boolean },
-        ) => {
-          limit: (n: number) => Promise<{
-            data: Array<
-              ReminderRow & { year: number; make: string; model: string }
-            > | null;
-          }>;
-        };
-      };
-    };
-  })
-    .from("vw_service_reminders")
-    .select("vehicle_id,service_name,pct_remaining,year,make,model")
-    .order("pct_remaining", { ascending: true })
-    .limit(3);
-  const { data } = await remindersQuery;
-  const reminders = (data ?? []) as Array<
-    ReminderRow & { year: number; make: string; model: string }
-  >;
+  const today = new Date();
+
+  const { data: vehicleData } = await supabase
+    .from("vehicles")
+    .select("id,year,make,model,odometer_miles");
+  const vehicles = (vehicleData ?? []) as VehicleRow[];
+  const vehicleMap = new Map(vehicles.map((v) => [v.id, v]));
+
+  const due: DueReminder[] = [];
+
+  if (vehicles.length > 0) {
+    const vehicleIds = vehicles.map((v) => v.id);
+    const { data: scheduleData } = await supabase
+      .from("service_schedules")
+      .select("id,vehicle_id,service_name,interval_miles,interval_months,last_performed_miles,last_performed_date")
+      .in("vehicle_id", vehicleIds)
+      .eq("is_active", true);
+    const schedules = (scheduleData ?? []) as ScheduleRow[];
+
+    for (const s of schedules) {
+      const vehicle = vehicleMap.get(s.vehicle_id);
+      if (!vehicle) continue;
+
+      const odometer = vehicle.odometer_miles != null ? Number(vehicle.odometer_miles) : null;
+      const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
+      const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
+      const intervalMonths = s.interval_months != null ? Number(s.interval_months) : null;
+
+      let miles_remaining: number | null = null;
+      let pct_remaining: number | null = null;
+      let is_overdue = false;
+
+      if (lastMiles != null && intervalMiles != null && odometer != null) {
+        const next_due_miles = lastMiles + intervalMiles;
+        miles_remaining = next_due_miles - odometer;
+        is_overdue = miles_remaining < 0;
+        pct_remaining = (miles_remaining / intervalMiles) * 100;
+      } else if (s.last_performed_date != null && intervalMonths != null) {
+        const lastDate = new Date(s.last_performed_date);
+        lastDate.setMonth(lastDate.getMonth() + intervalMonths);
+        is_overdue = lastDate < today;
+        const daysUntil = (lastDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+        pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
+      }
+
+      console.log("[ServiceReminders]", s.service_name, {
+        vehicle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+        lastMiles,
+        intervalMiles,
+        odometer,
+        miles_remaining,
+        pct_remaining,
+        is_overdue,
+      });
+
+      if (is_overdue || (pct_remaining != null && pct_remaining <= 30)) {
+        due.push({
+          id: s.id,
+          vehicle_id: s.vehicle_id,
+          service_name: s.service_name,
+          vehicle: { year: vehicle.year, make: vehicle.make, model: vehicle.model },
+          miles_remaining,
+          pct_remaining,
+          is_overdue,
+        });
+      }
+    }
+  }
+
+  due.sort((a, b) => {
+    if (a.is_overdue !== b.is_overdue) return a.is_overdue ? -1 : 1;
+    return (a.pct_remaining ?? 0) - (b.pct_remaining ?? 0);
+  });
+
+  const shown = due.slice(0, 5);
 
   return (
     <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
       <h3 className="mb-4 text-sm font-semibold text-wm-text">Service Reminders</h3>
-      <div className="space-y-2">
-        {reminders.length === 0 ? (
-          <p className="text-sm text-wm-text2">No active reminders.</p>
-        ) : (
-          reminders.map((r, idx) => (
+      {shown.length === 0 ? (
+        <p className="text-sm text-wm-text2">All services are up to date.</p>
+      ) : (
+        <div className="space-y-2">
+          {shown.map((r) => (
             <Link
-              key={`${r.vehicle_id}-${r.service_name}-${idx}`}
+              key={r.id}
               href={`/garage/${r.vehicle_id}`}
               className="flex items-center justify-between rounded-lg border border-wm-border bg-wm-s2 px-3 py-2"
             >
-              <div>
-                <p className="text-sm text-wm-text">{r.service_name}</p>
+              <div className="min-w-0">
+                <div className="flex flex-wrap items-center gap-2">
+                  <p className="text-sm text-wm-text">{r.service_name}</p>
+                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                    r.is_overdue ? "bg-wm-red/20 text-wm-red" : "bg-wm-orange/20 text-wm-orange"
+                  }`}>
+                    {r.is_overdue ? "Overdue" : "Due soon"}
+                  </span>
+                </div>
                 <p className="text-xs text-wm-text3">
-                  {r.year} {r.make} {r.model}
+                  {r.vehicle.year} {r.vehicle.make} {r.vehicle.model}
                 </p>
               </div>
-              <ReminderTone pct={r.pct_remaining} />
+              {r.miles_remaining != null && (
+                <p className={`ml-3 shrink-0 text-xs ${r.is_overdue ? "text-wm-red" : "text-wm-orange"}`}>
+                  {Math.round(r.miles_remaining).toLocaleString()} mi
+                </p>
+              )}
             </Link>
-          ))
-        )}
-      </div>
+          ))}
+        </div>
+      )}
     </section>
   );
 }

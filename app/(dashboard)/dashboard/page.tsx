@@ -244,10 +244,11 @@ async function ServiceRemindersSection() {
     const vehicleIds = vehicles.map((v) => v.id);
     const { data: scheduleData } = await supabase
       .from("service_schedules")
-      .select("id,vehicle_id,service_name,interval_miles,interval_months,last_performed_miles,last_performed_date")
+      .select("*")
       .in("vehicle_id", vehicleIds)
       .eq("is_active", true);
-    const schedules = (scheduleData ?? []) as ScheduleRow[];
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const schedules = (scheduleData ?? []) as any[];
 
     for (const s of schedules) {
       const vehicle = vehicleMap.get(s.vehicle_id);
@@ -257,29 +258,46 @@ async function ServiceRemindersSection() {
       const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
       const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
       const intervalMonths = s.interval_months != null ? Number(s.interval_months) : null;
+      const isRecurring = s.is_recurring !== false;
 
       let miles_remaining: number | null = null;
       let pct_remaining: number | null = null;
       let is_overdue = false;
 
-      if (lastMiles != null && intervalMiles != null && odometer != null) {
-        const next_due_miles = lastMiles + intervalMiles;
-        miles_remaining = next_due_miles - odometer;
-        is_overdue = miles_remaining < 0;
-        pct_remaining = (miles_remaining / intervalMiles) * 100;
-      } else if (s.last_performed_date != null && intervalMonths != null) {
-        const lastDate = new Date(s.last_performed_date);
-        lastDate.setMonth(lastDate.getMonth() + intervalMonths);
-        is_overdue = lastDate < today;
-        const daysUntil = (lastDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
-        pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
+      if (isRecurring) {
+        if (lastMiles != null && intervalMiles != null && odometer != null) {
+          const next_due_miles = lastMiles + intervalMiles;
+          miles_remaining = next_due_miles - odometer;
+          is_overdue = miles_remaining < 0;
+          pct_remaining = (miles_remaining / intervalMiles) * 100;
+        } else if (s.last_performed_date != null && intervalMonths != null) {
+          const lastDate = new Date(s.last_performed_date);
+          lastDate.setMonth(lastDate.getMonth() + intervalMonths);
+          is_overdue = lastDate < today;
+          const daysUntil = (lastDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+          pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
+        }
+      } else {
+        if (s.due_miles != null && odometer != null) {
+          miles_remaining = Number(s.due_miles) - odometer;
+          is_overdue = miles_remaining < 0;
+          pct_remaining = is_overdue ? 0 : Math.min(100, (miles_remaining / 500) * 100);
+        } else if (s.due_date != null) {
+          const dueDate = new Date(s.due_date);
+          is_overdue = dueDate < today;
+          const daysUntil = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
+          pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
+        }
       }
 
       console.log("[ServiceReminders]", s.service_name, {
         vehicle: `${vehicle.year} ${vehicle.make} ${vehicle.model}`,
+        isRecurring,
         lastMiles,
         intervalMiles,
         odometer,
+        due_miles: s.due_miles,
+        due_date: s.due_date,
         miles_remaining,
         pct_remaining,
         is_overdue,

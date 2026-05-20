@@ -25,6 +25,14 @@ type ReminderForm = {
   due_miles: string;
 };
 
+type DoneForm = {
+  service_name: string;
+  completion_date: string;
+  completion_miles: string;
+  cost: string;
+  notes: string;
+};
+
 type Props = {
   vehicle: Vehicle;
   hasDevice: boolean;
@@ -39,6 +47,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
   const [schedules, setSchedules] = useState<ScheduleWithPct[]>(initialSchedules);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
+  const [doneModalOpen, setDoneModalOpen] = useState(false);
+  const [doneSchedule, setDoneSchedule] = useState<ScheduleWithPct | null>(null);
+  const [doneSaving, setDoneSaving] = useState(false);
+  const [doneError, setDoneError] = useState<string | null>(null);
 
   const title = `${vehicle.year} ${vehicle.make} ${vehicle.model}`;
 
@@ -75,6 +87,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
   });
 
   const isRecurring = reminderForm.watch("is_recurring");
+
+  const doneForm = useForm<DoneForm>({
+    defaultValues: { service_name: "", completion_date: "", completion_miles: "", cost: "", notes: "" },
+  });
 
   const openNewDrawer = () => {
     setEditingSchedule(null);
@@ -203,6 +219,83 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
       router.refresh();
     }
     setSaving(false);
+  };
+
+  const openDoneModal = (s: ScheduleWithPct) => {
+    setDoneSchedule(s);
+    doneForm.reset({
+      service_name: s.service_name,
+      completion_date: new Date().toISOString().split("T")[0],
+      completion_miles: vehicle.odometer_miles != null ? String(vehicle.odometer_miles) : "",
+      cost: "",
+      notes: "",
+    });
+    setDoneError(null);
+    setDoneModalOpen(true);
+  };
+
+  const closeDoneModal = () => {
+    setDoneModalOpen(false);
+    setDoneSchedule(null);
+    setDoneError(null);
+  };
+
+  const onSaveDone = async (values: DoneForm) => {
+    if (!doneSchedule) return;
+    setDoneSaving(true);
+    setDoneError(null);
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setDoneError("Not signed in.");
+      setDoneSaving(false);
+      return;
+    }
+
+    const completionMiles = values.completion_miles.trim() ? Number(values.completion_miles) : null;
+    const cost = values.cost.trim() ? Number(values.cost) : null;
+
+    const { error: logError } = await supabase.from("logbook_entries").insert({
+      vehicle_id: vehicle.id,
+      user_id: user.id,
+      category: "maintenance" as const,
+      title: doneSchedule.service_name,
+      event_date: values.completion_date,
+      odometer_miles: completionMiles,
+      total_cost: cost,
+      notes: values.notes.trim() || null,
+      entry_mode: "form" as const,
+      is_public: false,
+    });
+
+    if (logError) {
+      setDoneError(logError.message);
+      setDoneSaving(false);
+      return;
+    }
+
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const rawDone = doneSchedule as any;
+    const { error: schedError } = await supabase
+      .from("service_schedules")
+      .update(
+        rawDone.is_recurring !== false
+          ? { last_performed_miles: completionMiles, last_performed_date: values.completion_date, is_active: true }
+          : { is_active: false },
+      )
+      .eq("id", doneSchedule.id);
+
+    if (schedError) {
+      setDoneError(schedError.message);
+      setDoneSaving(false);
+      return;
+    }
+
+    closeDoneModal();
+    await refreshSchedules();
+    router.refresh();
+    setDoneSaving(false);
   };
 
   const formatNextDue = (s: ScheduleWithPct) => {
@@ -352,6 +445,13 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                           <div className="flex shrink-0 gap-3">
                             <button
                               type="button"
+                              onClick={() => openDoneModal(s)}
+                              className="text-xs font-medium text-wm-accent hover:opacity-70"
+                            >
+                              Done
+                            </button>
+                            <button
+                              type="button"
                               onClick={() => openEditDrawer(s)}
                               className="text-xs text-wm-text2 hover:text-wm-text"
                             >
@@ -417,6 +517,99 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
           </div>
         )}
       </div>
+
+      {doneModalOpen && doneSchedule && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-wm-bg/70"
+            aria-label="Close modal"
+            onClick={closeDoneModal}
+          />
+          <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+            <div className="w-full max-w-md rounded-xl border border-wm-border bg-wm-s1 p-6 shadow-xl">
+              <div className="flex items-center justify-between">
+                <h3 className="text-lg font-semibold text-wm-text">Mark as Done</h3>
+                <button type="button" onClick={closeDoneModal} className="text-wm-text2 hover:text-wm-text">✕</button>
+              </div>
+
+              <form
+                className="mt-6 flex flex-col gap-4"
+                onSubmit={doneForm.handleSubmit(onSaveDone)}
+              >
+                <label className="block text-sm">
+                  <span className="text-wm-text2">Service</span>
+                  <input
+                    readOnly
+                    className="mt-1 w-full cursor-default rounded-md border border-wm-border bg-wm-s2/50 px-3 py-2 text-wm-text opacity-70"
+                    {...doneForm.register("service_name")}
+                  />
+                </label>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <label className="block text-sm">
+                    <span className="text-wm-text2">Completion Date</span>
+                    <input
+                      type="date"
+                      className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
+                      {...doneForm.register("completion_date")}
+                    />
+                  </label>
+                  <label className="block text-sm">
+                    <span className="text-wm-text2">Mileage</span>
+                    <input
+                      type="number"
+                      placeholder="Odometer reading"
+                      className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
+                      {...doneForm.register("completion_miles")}
+                    />
+                  </label>
+                </div>
+
+                <label className="block text-sm">
+                  <span className="text-wm-text2">Cost (optional)</span>
+                  <input
+                    type="number"
+                    step="0.01"
+                    placeholder="e.g. 59.99"
+                    className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
+                    {...doneForm.register("cost")}
+                  />
+                </label>
+
+                <label className="block text-sm">
+                  <span className="text-wm-text2">Notes (optional)</span>
+                  <textarea
+                    rows={3}
+                    placeholder="Any notes about this service..."
+                    className="mt-1 w-full resize-none rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
+                    {...doneForm.register("notes")}
+                  />
+                </label>
+
+                {doneError && <p className="text-sm text-wm-red">{doneError}</p>}
+
+                <div className="flex gap-3">
+                  <button
+                    type="button"
+                    onClick={closeDoneModal}
+                    className="flex-1 rounded-md border border-wm-border bg-wm-s2 py-2 text-sm font-medium text-wm-text hover:bg-wm-s3"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={doneSaving}
+                    className="flex-1 rounded-md bg-wm-accent py-2 text-sm font-medium text-white disabled:opacity-60"
+                  >
+                    {doneSaving ? "Saving..." : "Save"}
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </>
+      )}
 
       {drawerOpen && (
         <>

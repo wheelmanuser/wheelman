@@ -328,21 +328,22 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
         </Link>
       </div>
 
-      <section className="relative mt-6 overflow-hidden rounded-sm border border-wm-border bg-gradient-to-br from-wm-s2 to-wm-s3 px-8 py-12">
+      <section className="carbon-texture scanlines relative mt-6 overflow-hidden border border-wm-border border-l-4 border-l-wm-accent bg-wm-s1 px-8 py-12">
         <div className="absolute right-4 top-4">
           <span className={hasDevice
-            ? "border border-wm-accent/30 px-2 py-1 text-xs uppercase tracking-widest text-wm-accent"
-            : "border border-wm-border px-2 py-1 text-xs uppercase tracking-widest text-wm-text3"
+            ? "label-technical border border-wm-accent/30 px-2 py-1 text-wm-accent"
+            : "label-technical border border-wm-border px-2 py-1 text-wm-text3"
           }>
             {hasDevice ? "WhereQube" : "No Device"}
           </span>
         </div>
         <div className="flex flex-col items-center text-center">
-          <p className="text-xs uppercase tracking-[0.4em] text-wm-text3">{vehicle.year}</p>
-          <h3 className="mt-2 text-4xl font-light tracking-wide text-wm-text">{vehicle.make}</h3>
-          <p className="mt-1 text-base font-light tracking-[0.25em] text-wm-text2">{vehicle.model}</p>
+          <span className="label-technical text-wm-accent">{vehicle.year}</span>
+          <h3 className="font-headline mt-2 text-4xl font-bold tracking-tight text-wm-text">
+            {vehicle.make} {vehicle.model}
+          </h3>
           {vehicle.vin && (
-            <p className="mt-6 font-mono text-xs text-wm-text3">VIN {vehicle.vin}</p>
+            <p className="mt-6 font-mono text-xs tracking-widest text-wm-text3">VIN {vehicle.vin}</p>
           )}
         </div>
       </section>
@@ -353,7 +354,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
             key={id}
             type="button"
             onClick={() => setTab(id)}
-            className={`pb-2.5 text-xs uppercase tracking-widest transition-colors ${tab === id ? "border-b-2 border-wm-accent text-wm-text" : "text-wm-text3 hover:text-wm-text2"}`}
+            className={`label-technical pb-2.5 transition-colors ${tab === id ? "border-b-2 border-wm-gold text-wm-text" : "text-wm-text3 hover:text-wm-text2"}`}
           >
             {id}
           </button>
@@ -365,11 +366,11 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
           <div className="space-y-8">
             <section>
               <h3 className="mb-3 text-xs uppercase tracking-widest text-wm-text3">Vehicle Specs</h3>
-              <div className="grid grid-cols-1 gap-px overflow-hidden rounded-lg border border-wm-border bg-wm-border md:grid-cols-2">
+              <div className="grid grid-cols-1 gap-px bg-wm-border md:grid-cols-2">
                 {specs.map(([k, v]) => (
-                  <div key={k} className="flex justify-between gap-4 bg-wm-s1 px-4 py-3 text-sm">
-                    <span className="text-wm-text2">{k}</span>
-                    <span className="text-right text-wm-text">{v}</span>
+                  <div key={k} className="flex justify-between gap-4 border-l-4 border-wm-accent-dark bg-wm-s1 px-4 py-3 text-sm transition-colors hover:border-wm-gold">
+                    <span className="label-technical text-wm-text3">{k}</span>
+                    <span className="text-right font-medium text-wm-text">{v}</span>
                   </div>
                 ))}
               </div>
@@ -388,7 +389,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                 <button
                   type="button"
                   onClick={openNewDrawer}
-                  className="rounded-sm bg-wm-accent px-3 py-1.5 text-xs uppercase tracking-wider text-white"
+                  className="label-technical border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
                 >
                   Add Reminder
                 </button>
@@ -404,23 +405,23 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                     return (
                       <li
                         key={s.id}
-                        className={`border border-wm-border bg-wm-s1 px-4 py-3 text-sm ${
+                        className={`rounded-none border border-wm-border bg-wm-s1 px-4 py-3 text-sm ${
                           s.is_overdue
-                            ? "border-l-2 border-l-wm-red"
+                            ? "border-l-4 border-l-wm-red"
                             : s.pct_remaining != null && s.pct_remaining <= 30
-                            ? "border-l-2 border-l-wm-orange"
-                            : "border-l-2 border-l-wm-green"
+                            ? "border-l-4 border-l-wm-gold"
+                            : "border-l-4 border-l-wm-accent-dark"
                         }`}
                       >
                         <div className="flex items-start justify-between gap-2">
                           <div className="min-w-0 flex-1">
                             <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-medium text-wm-text">{s.service_name}</span>
-                              <span className="rounded-full bg-wm-s2 px-2 py-0.5 text-xs text-wm-text3">
+                              <span className="font-headline text-base font-semibold tracking-wide text-wm-text">{s.service_name}</span>
+                              <span className="label-technical rounded-sm bg-wm-s2 px-2 py-0.5 text-wm-text3">
                                 {raw.is_recurring !== false ? "Recurring" : "One-time"}
                               </span>
                               {s.is_overdue && (
-                                <span className="rounded-full bg-wm-red/20 px-2 py-0.5 text-xs text-wm-red">
+                                <span className="label-technical rounded-sm bg-wm-red/20 px-2 py-0.5 text-wm-red">
                                   Overdue
                                 </span>
                               )}
@@ -435,12 +436,12 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                                   {Math.round(s.miles_remaining).toLocaleString()}
                                 </span>
                                 {s.pct_remaining != null && !Number.isNaN(s.pct_remaining) && (
-                                  <span className={`ml-2 inline-block rounded-full px-2 py-0.5 text-xs font-medium ${
+                                  <span className={`label-technical ml-2 inline-block rounded-sm px-2 py-0.5 ${
                                     s.is_overdue
                                       ? "bg-wm-red/20 text-wm-red"
                                       : s.pct_remaining <= 30
-                                      ? "bg-wm-orange/20 text-wm-orange"
-                                      : "bg-wm-green/20 text-wm-green"
+                                      ? "bg-wm-gold/20 text-wm-gold"
+                                      : "bg-wm-accent/20 text-wm-accent"
                                   }`}>
                                     {s.is_overdue ? "Overdue" : s.pct_remaining <= 30 ? "Due soon" : "Good"}
                                   </span>
@@ -601,9 +602,9 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
             aria-label="Close drawer"
             onClick={closeDrawer}
           />
-          <aside className="fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-wm-border bg-wm-s1 p-6 shadow-xl">
+          <aside className="carbon-texture fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-wm-border bg-wm-s1 p-6 shadow-xl">
             <div className="flex items-center justify-between">
-              <h3 className="text-lg font-semibold text-wm-text">
+              <h3 className="font-headline text-xl tracking-wide text-wm-text">
                 {editingSchedule ? "Edit Reminder" : "New Reminder"}
               </h3>
               <button type="button" onClick={closeDrawer} className="text-wm-text2 hover:text-wm-text">✕</button>
@@ -727,7 +728,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
               <button
                 type="submit"
                 disabled={saving}
-                className="mt-auto rounded-sm bg-wm-accent py-2 text-xs uppercase tracking-wider text-white disabled:opacity-60"
+                className="mt-auto rounded-sm border border-wm-accent bg-wm-accent-dark py-2 text-xs uppercase tracking-wider text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
               >
                 {saving ? "Saving..." : editingSchedule ? "Update Reminder" : "Save Reminder"}
               </button>

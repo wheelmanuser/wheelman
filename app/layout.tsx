@@ -1,13 +1,21 @@
 import type { Metadata } from "next";
 import localFont from "next/font/local";
+import { Archivo_Narrow, Hanken_Grotesk } from "next/font/google";
 import { AppProviders } from "@/components/providers/app-providers";
 import "./globals.css";
 
-const geistSans = localFont({
-  src: "./fonts/GeistVF.woff",
-  variable: "--font-geist-sans",
-  weight: "100 900",
+const archivNarrow = Archivo_Narrow({
+  subsets: ["latin"],
+  variable: "--font-headline",
+  weight: ["400", "500", "600", "700"],
 });
+
+const hankenGrotesk = Hanken_Grotesk({
+  subsets: ["latin"],
+  variable: "--font-body",
+  weight: ["300", "400", "500", "600"],
+});
+
 const geistMono = localFont({
   src: "./fonts/GeistMonoVF.woff",
   variable: "--font-geist-mono",
@@ -27,7 +35,7 @@ export default function RootLayout({
   return (
     <html lang="en" className="dark">
       <body
-        className={`${geistSans.variable} ${geistMono.variable} min-h-screen bg-wm-bg text-wm-text antialiased`}
+        className={`${archivNarrow.variable} ${hankenGrotesk.variable} ${geistMono.variable} min-h-screen bg-wm-bg text-wm-text antialiased`}
       >
         <AppProviders>{children}</AppProviders>
       </body>

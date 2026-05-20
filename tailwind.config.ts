@@ -1,20 +1,21 @@
 import type { Config } from "tailwindcss";
 
 const wmColors = {
-  "wm-bg":     "rgb(var(--wm-bg)     / <alpha-value>)",
-  "wm-s1":     "rgb(var(--wm-s1)     / <alpha-value>)",
-  "wm-s2":     "rgb(var(--wm-s2)     / <alpha-value>)",
-  "wm-s3":     "rgb(var(--wm-s3)     / <alpha-value>)",
-  "wm-border": "rgb(var(--wm-border) / <alpha-value>)",
-  "wm-accent": "rgb(var(--wm-accent) / <alpha-value>)",
-  "wm-gold":   "rgb(var(--wm-gold)   / <alpha-value>)",
-  "wm-text":   "rgb(var(--wm-text)   / <alpha-value>)",
-  "wm-text2":  "rgb(var(--wm-text2)  / <alpha-value>)",
-  "wm-text3":  "rgb(var(--wm-text3)  / <alpha-value>)",
-  "wm-green":  "rgb(var(--wm-green)  / <alpha-value>)",
-  "wm-red":    "rgb(var(--wm-red)    / <alpha-value>)",
-  "wm-orange": "rgb(var(--wm-orange) / <alpha-value>)",
-  "wm-purple": "rgb(var(--wm-purple) / <alpha-value>)",
+  "wm-bg":          "#131312",
+  "wm-s1":          "#1a1a18",
+  "wm-s2":          "#222220",
+  "wm-s3":          "#2e2e2b",
+  "wm-border":      "#2e2e2b",
+  "wm-text":        "#e8e4dc",
+  "wm-text2":       "#9c9888",
+  "wm-text3":       "#6b6858",
+  "wm-accent":      "#a5d0bc",
+  "wm-accent-dark": "#0c3729",
+  "wm-gold":        "#e6c364",
+  "wm-red":         "#cf6679",
+  "wm-green":       "#a5d0bc",
+  "wm-orange":      "#f97316",
+  "wm-purple":      "#a855f7",
 } as const;
 
 const config: Config = {
@@ -28,6 +29,10 @@ const config: Config = {
     extend: {
       colors: {
         ...wmColors,
+      },
+      fontFamily: {
+        headline: ["var(--font-headline)", "sans-serif"],
+        body: ["var(--font-body)", "sans-serif"],
       },
     },
   },

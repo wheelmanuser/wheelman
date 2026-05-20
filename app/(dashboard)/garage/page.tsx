@@ -167,10 +167,10 @@ export default function GaragePage() {
         <button
           type="button"
           onClick={() => setFilter("all")}
-          className={`rounded-full px-3 py-1.5 text-xs ${
+          className={`px-4 py-1.5 text-xs uppercase tracking-wider transition-colors ${
             filter === "all"
               ? "bg-wm-accent text-white"
-              : "bg-wm-s2 text-wm-text2 hover:text-wm-text"
+              : "border border-wm-border text-wm-text3 hover:text-wm-text2"
           }`}
         >
           All Vehicles
@@ -178,10 +178,10 @@ export default function GaragePage() {
         <button
           type="button"
           onClick={() => setFilter("due")}
-          className={`rounded-full px-3 py-1.5 text-xs ${
+          className={`px-4 py-1.5 text-xs uppercase tracking-wider transition-colors ${
             filter === "due"
               ? "bg-wm-orange text-wm-bg"
-              : "bg-wm-s2 text-wm-text2 hover:text-wm-text"
+              : "border border-wm-border text-wm-text3 hover:text-wm-text2"
           }`}
         >
           Service Due

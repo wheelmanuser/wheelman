@@ -86,10 +86,10 @@ async function GreetingHeader() {
   return (
     <header className="flex items-start justify-between gap-4">
       <div>
-        <h2 className="text-3xl font-semibold text-wm-text">
+        <h2 className="text-4xl font-light tracking-wide text-wm-text">
           {greetingForNow()}, {displayName}
         </h2>
-        <p className="mt-2 text-sm text-wm-text2">
+        <p className="mt-2 text-sm text-wm-text3">
           Start where you left off in your Wheelman workspace.
         </p>
       </div>
@@ -116,7 +116,7 @@ async function GarageSection() {
   return (
     <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-wm-text">Your Garage</h3>
+        <h3 className="text-xs uppercase tracking-widest text-wm-text3">Your Garage</h3>
         {vehicles.length > 3 && (
           <Link href="/garage" className="text-xs text-wm-accent hover:underline">
             View all →
@@ -136,7 +136,7 @@ async function GarageSection() {
             <Link
               key={v.id}
               href={`/garage/${v.id}`}
-              className="rounded-lg border border-wm-border bg-wm-s2 p-3 hover:border-wm-accent/60"
+              className="rounded-sm border border-wm-border bg-wm-s2 p-3 transition-colors hover:border-wm-accent/40"
             >
               <p className="text-sm font-medium text-wm-text">
                 {v.year} {v.make} {v.model}
@@ -187,7 +187,7 @@ async function RecentActivitySection() {
   return (
     <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-sm font-semibold text-wm-text">Recent Logbook Activity</h3>
+        <h3 className="text-xs uppercase tracking-widest text-wm-text3">Recent Logbook Activity</h3>
         <Link href="/garage" className="text-xs text-wm-accent hover:underline">
           View full logbook →
         </Link>
@@ -200,7 +200,7 @@ async function RecentActivitySection() {
             <Link
               key={e.id}
               href={`/garage/${e.vehicle_id}/logbook`}
-              className="flex items-center justify-between rounded-lg border border-wm-border bg-wm-s2 px-3 py-2"
+              className="flex items-center justify-between border border-wm-border bg-wm-s2 px-3 py-2 transition-colors hover:border-wm-accent/40"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm text-wm-text">
@@ -317,7 +317,7 @@ async function ServiceRemindersSection() {
 
   return (
     <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
-      <h3 className="mb-4 text-sm font-semibold text-wm-text">Service Reminders</h3>
+      <h3 className="mb-4 text-xs uppercase tracking-widest text-wm-text3">Service Reminders</h3>
       {shown.length === 0 ? (
         <p className="text-sm text-wm-text2">All services are up to date.</p>
       ) : (
@@ -326,7 +326,7 @@ async function ServiceRemindersSection() {
             <Link
               key={r.id}
               href={`/garage/${r.vehicle_id}`}
-              className="flex items-center justify-between rounded-lg border border-wm-border bg-wm-s2 px-3 py-2"
+              className="flex items-center justify-between border border-wm-border bg-wm-s2 px-3 py-2 transition-colors hover:border-wm-accent/40"
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
@@ -371,11 +371,11 @@ async function QuickActionsSection() {
 
   return (
     <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
-      <h3 className="mb-4 text-sm font-semibold text-wm-text">Quick Actions</h3>
+      <h3 className="mb-4 text-xs uppercase tracking-widest text-wm-text3">Quick Actions</h3>
       <div className="grid gap-3 sm:grid-cols-3">
         <Link
           href="/garage/add"
-          className="group rounded-lg border border-wm-border bg-wm-s2 p-4 hover:border-wm-accent/60"
+          className="group rounded-sm border border-wm-border bg-wm-s2 p-4 transition-colors hover:border-wm-accent/40"
         >
           <p className="text-sm font-medium text-wm-text">Add Vehicle</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
@@ -384,7 +384,7 @@ async function QuickActionsSection() {
         </Link>
         <Link
           href={logServiceHref}
-          className="group rounded-lg border border-wm-border bg-wm-s2 p-4 hover:border-wm-accent/60"
+          className="group rounded-sm border border-wm-border bg-wm-s2 p-4 transition-colors hover:border-wm-accent/40"
         >
           <p className="text-sm font-medium text-wm-text">Log Service</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
@@ -393,7 +393,7 @@ async function QuickActionsSection() {
         </Link>
         <Link
           href={viewCostsHref}
-          className="group rounded-lg border border-wm-border bg-wm-s2 p-4 hover:border-wm-accent/60"
+          className="group rounded-sm border border-wm-border bg-wm-s2 p-4 transition-colors hover:border-wm-accent/40"
         >
           <p className="text-sm font-medium text-wm-text">View Costs</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">

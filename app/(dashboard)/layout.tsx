@@ -63,22 +63,24 @@ export default function DashboardLayout({
           menuOpen ? "translate-x-0" : "-translate-x-full",
         )}
       >
-        <div className="mb-8 flex items-center justify-between md:block">
-          <p className="text-xl font-extrabold tracking-[0.2em]">
-            <span className="text-wm-text">WHEEL</span>
-            <span className="text-wm-gold">MAN</span>
-          </p>
-          <button
-            type="button"
-            className="rounded-md p-1 text-wm-text2 hover:bg-wm-s2 md:hidden"
-            onClick={() => setMenuOpen(false)}
-            aria-label="Close sidebar"
-          >
-            <X className="h-5 w-5" />
-          </button>
+        <div className="mb-8 border-b border-wm-border pb-6">
+          <div className="flex items-center justify-between">
+            <p className="text-2xl font-light tracking-[0.35em]">
+              <span className="text-wm-text">WHEEL</span>
+              <span className="text-wm-gold">MAN</span>
+            </p>
+            <button
+              type="button"
+              className="p-1 text-wm-text2 hover:text-wm-text md:hidden"
+              onClick={() => setMenuOpen(false)}
+              aria-label="Close sidebar"
+            >
+              <X className="h-5 w-5" />
+            </button>
+          </div>
         </div>
 
-        <nav className="space-y-2">
+        <nav className="space-y-0.5">
           {navItems.map((item) => {
             const Icon = item.icon;
             const active =
@@ -89,33 +91,33 @@ export default function DashboardLayout({
                 href={item.href}
                 onClick={() => setMenuOpen(false)}
                 className={cn(
-                  "flex items-center gap-3 rounded-md px-3 py-2 text-sm transition-colors",
+                  "flex items-center gap-3 border-l-2 px-3 py-2.5 text-xs uppercase tracking-widest transition-colors",
                   active
-                    ? "bg-wm-s3 text-wm-text"
-                    : "text-wm-text2 hover:bg-wm-s2 hover:text-wm-text",
+                    ? "border-wm-accent bg-wm-s2 text-wm-text"
+                    : "border-transparent text-wm-text2 hover:bg-wm-s2/60 hover:text-wm-text",
                 )}
               >
-                <Icon className="h-4 w-4" />
+                <Icon className="h-3.5 w-3.5" />
                 {item.label}
               </Link>
             );
           })}
         </nav>
 
-        <div className="mt-auto rounded-lg border border-wm-border bg-wm-s2 p-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-wm-accent text-xs font-semibold text-white">
+        <div className="mt-auto border-t border-wm-border pt-4">
+          <div className="flex items-center gap-3 px-1">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-wm-accent text-xs font-medium text-white">
               {getInitial(displayName)}
             </div>
-            <p className="truncate text-sm text-wm-text">{displayName}</p>
+            <p className="truncate text-xs tracking-wide text-wm-text2">{displayName}</p>
           </div>
           <button
             type="button"
             onClick={handleSignOut}
             disabled={signingOut}
-            className="mt-3 flex w-full items-center justify-center gap-2 rounded-md border border-wm-border px-3 py-2 text-xs text-wm-text2 hover:bg-wm-s3 hover:text-wm-text disabled:opacity-60"
+            className="mt-3 flex w-full items-center justify-center gap-2 border border-wm-border px-3 py-2 text-xs uppercase tracking-widest text-wm-text3 hover:border-wm-accent/40 hover:text-wm-text2 disabled:opacity-60"
           >
-            <LogOut className="h-3.5 w-3.5" />
+            <LogOut className="h-3 w-3" />
             {signingOut ? "Signing out..." : "Sign out"}
           </button>
         </div>

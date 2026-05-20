@@ -93,7 +93,7 @@ export default function DashboardLayout({
                 className={cn(
                   "flex items-center gap-3 border-l-2 px-3 py-2.5 text-xs uppercase tracking-widest transition-colors",
                   active
-                    ? "border-wm-accent bg-wm-s2 text-wm-text"
+                    ? "border-wm-gold bg-wm-accent-dark/30 text-wm-text"
                     : "border-transparent text-wm-text2 hover:bg-wm-s2/60 hover:text-wm-text",
                 )}
               >
@@ -106,7 +106,7 @@ export default function DashboardLayout({
 
         <div className="mt-auto border-t border-wm-border pt-4">
           <div className="flex items-center gap-3 px-1">
-            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm bg-wm-accent text-xs font-medium text-white">
+            <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-wm-accent/40 bg-wm-accent-dark text-xs font-medium text-wm-accent">
               {getInitial(displayName)}
             </div>
             <p className="truncate text-xs tracking-wide text-wm-text2">{displayName}</p>
@@ -133,7 +133,7 @@ export default function DashboardLayout({
           >
             <Menu className="h-5 w-5" />
           </button>
-          <h1 className="text-lg font-semibold text-wm-text">{title}</h1>
+          <h1 className="font-headline text-lg tracking-wide text-wm-text">{title}</h1>
         </header>
         <main className="min-h-[calc(100vh-4rem)] overflow-y-auto p-4 md:p-6">
           {children}

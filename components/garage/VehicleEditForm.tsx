@@ -102,18 +102,18 @@ export function VehicleEditForm({ vehicle }: Props) {
         ← Back to vehicle
       </Link>
 
-      <h2 className="mt-4 text-2xl font-semibold text-wm-text">Edit Vehicle</h2>
+      <h2 className="font-headline mt-4 text-2xl font-light tracking-wide text-wm-text">Edit Vehicle</h2>
 
       <form
         onSubmit={form.handleSubmit(onSubmit)}
-        className="mt-6 space-y-4 rounded-xl border border-wm-border bg-wm-s1 p-6"
+        className="mt-6 space-y-4 border border-wm-border bg-wm-s1 p-6"
       >
         {VEHICLE_FORM_FIELDS.map((field) => {
           const errorMessage = form.formState.errors[field.name]?.message;
           const isNumber = field.type === "number";
           return (
             <label key={field.name} className="block">
-              <span className="mb-1 block text-sm text-wm-text2">{field.label}</span>
+              <span className="label-technical mb-1 block text-wm-text3">{field.label}</span>
               <input
                 type={field.type}
                 {...form.register(field.name, {
@@ -121,7 +121,7 @@ export function VehicleEditForm({ vehicle }: Props) {
                     ? (v) => (v === "" ? undefined : Number(v))
                     : undefined,
                 })}
-                className="w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+                className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
               />
               {errorMessage && (
                 <span className="mt-1 block text-xs text-wm-red">{errorMessage}</span>
@@ -132,13 +132,13 @@ export function VehicleEditForm({ vehicle }: Props) {
 
         {/* Odometer — kept separate since it lives outside the shared schema */}
         <label className="block">
-          <span className="mb-1 block text-sm text-wm-text2">Current Odometer (miles)</span>
+          <span className="label-technical mb-1 block text-wm-text3">Current Odometer (miles)</span>
           <input
             type="number"
             value={odometer}
             onChange={(e) => setOdometer(e.target.value)}
             placeholder="e.g. 45000"
-            className="w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+            className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
           />
           <span className="mt-1 block text-xs text-wm-text3">
             Used to calculate miles remaining on service reminders.
@@ -154,7 +154,7 @@ export function VehicleEditForm({ vehicle }: Props) {
         <button
           type="submit"
           disabled={isSubmitting || deleting}
-          className="rounded-md bg-wm-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+          className="rounded-sm border border-wm-accent bg-wm-accent-dark px-4 py-2 text-xs uppercase tracking-wider text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
         >
           {isSubmitting ? "Saving..." : "Save Changes"}
         </button>
@@ -165,7 +165,7 @@ export function VehicleEditForm({ vehicle }: Props) {
           type="button"
           onClick={onDelete}
           disabled={deleting || isSubmitting}
-          className="rounded-md border border-wm-red/50 bg-wm-red/10 px-4 py-2 text-sm font-medium text-wm-red hover:bg-wm-red/20 disabled:opacity-60"
+          className="rounded-sm border border-wm-red/50 bg-wm-red/10 px-4 py-2 text-xs uppercase tracking-wider text-wm-red hover:bg-wm-red/20 disabled:opacity-60"
         >
           {deleting ? "Deleting..." : "Delete Vehicle"}
         </button>

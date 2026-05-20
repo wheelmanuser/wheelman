@@ -151,12 +151,12 @@ export default function GaragePage() {
     <div>
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="text-2xl font-semibold text-wm-text">My Garage</h2>
+          <h2 className="font-headline text-2xl font-light tracking-wide text-wm-text">My Garage</h2>
           <p className="mt-1 text-sm text-wm-text2">{vehicles.length} vehicle(s)</p>
         </div>
         <Link
           href="/garage/add"
-          className="inline-flex items-center gap-2 rounded-md bg-wm-accent px-3 py-2 text-sm font-medium text-white"
+          className="label-technical inline-flex items-center gap-2 border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
         >
           <Plus className="h-4 w-4" />
           Add Vehicle
@@ -167,9 +167,9 @@ export default function GaragePage() {
         <button
           type="button"
           onClick={() => setFilter("all")}
-          className={`px-4 py-1.5 text-xs uppercase tracking-wider transition-colors ${
+          className={`label-technical px-4 py-1.5 transition-colors ${
             filter === "all"
-              ? "bg-wm-accent text-white"
+              ? "border border-wm-accent bg-wm-accent-dark text-wm-accent"
               : "border border-wm-border text-wm-text3 hover:text-wm-text2"
           }`}
         >
@@ -178,9 +178,9 @@ export default function GaragePage() {
         <button
           type="button"
           onClick={() => setFilter("due")}
-          className={`px-4 py-1.5 text-xs uppercase tracking-wider transition-colors ${
+          className={`label-technical px-4 py-1.5 transition-colors ${
             filter === "due"
-              ? "bg-wm-orange text-wm-bg"
+              ? "border border-wm-gold bg-wm-gold/10 text-wm-gold"
               : "border border-wm-border text-wm-text3 hover:text-wm-text2"
           }`}
         >
@@ -198,8 +198,8 @@ export default function GaragePage() {
         <p className="mt-6 text-sm text-wm-text2">Loading vehicles...</p>
       ) : filter === "due" ? (
         dueReminders.length === 0 ? (
-          <div className="mt-8 rounded-xl border border-dashed border-wm-border bg-wm-s1 p-8 text-center">
-            <p className="text-sm font-medium text-wm-text">All services are up to date</p>
+          <div className="mt-8 border border-dashed border-wm-border bg-wm-s1 p-8 text-center">
+            <p className="font-headline text-sm font-medium text-wm-text">All services are up to date</p>
             <p className="mt-1 text-xs text-wm-text2">No reminders are due or overdue across your vehicles.</p>
           </div>
         ) : (
@@ -208,7 +208,7 @@ export default function GaragePage() {
               <section key={vehicle.id}>
                 <Link
                   href={`/garage/${vehicle.id}`}
-                  className="mb-3 block text-sm font-semibold text-wm-text hover:text-wm-accent"
+                  className="mb-3 block font-headline text-sm font-semibold text-wm-text hover:text-wm-accent"
                 >
                   {vehicle.year} {vehicle.make} {vehicle.model}
                 </Link>
@@ -216,14 +216,16 @@ export default function GaragePage() {
                   {schedules.map((s) => (
                     <li
                       key={s.id}
-                      className={`rounded-lg border bg-wm-s1 px-4 py-3 text-sm ${s.is_overdue ? "border-wm-red/40" : "border-wm-border"}`}
+                      className={`rounded-none border border-wm-border bg-wm-s1 px-4 py-3 text-sm ${
+                        s.is_overdue ? "border-l-4 border-l-wm-red" : "border-l-4 border-l-wm-gold"
+                      }`}
                     >
                       <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-medium text-wm-text">{s.service_name}</span>
-                        <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
+                        <span className="font-headline font-medium text-wm-text">{s.service_name}</span>
+                        <span className={`label-technical rounded-sm px-2 py-0.5 ${
                           s.is_overdue
                             ? "bg-wm-red/20 text-wm-red"
-                            : "bg-wm-orange/20 text-wm-orange"
+                            : "bg-wm-gold/20 text-wm-gold"
                         }`}>
                           {s.is_overdue ? "Overdue" : "Due soon"}
                         </span>
@@ -234,7 +236,7 @@ export default function GaragePage() {
                       {s.miles_remaining != null && (
                         <p className="mt-0.5 text-xs text-wm-text2">
                           Miles remaining:{" "}
-                          <span className={s.is_overdue ? "text-wm-red" : "text-wm-orange"}>
+                          <span className={s.is_overdue ? "text-wm-red" : "text-wm-gold"}>
                             {Math.round(s.miles_remaining).toLocaleString()}
                           </span>
                         </p>
@@ -247,12 +249,12 @@ export default function GaragePage() {
           </div>
         )
       ) : vehicles.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-wm-border bg-wm-s1 p-8 text-center">
-          <div className="mx-auto h-16 w-16 rounded-full bg-wm-s2" />
+        <div className="mt-8 border border-dashed border-wm-border bg-wm-s1 p-8 text-center">
+          <div className="mx-auto h-16 w-16 bg-wm-s2" />
           <p className="mt-4 text-sm text-wm-text2">No vehicles yet.</p>
           <Link
             href="/garage/add"
-            className="mt-4 inline-flex rounded-md bg-wm-accent px-3 py-2 text-sm font-medium text-white"
+            className="label-technical mt-4 inline-flex border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
           >
             Add your first vehicle
           </Link>

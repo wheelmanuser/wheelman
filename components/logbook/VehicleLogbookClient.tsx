@@ -94,14 +94,14 @@ export function VehicleLogbookClient({
     <div>
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div>
-          <h2 className="text-2xl font-semibold text-wm-text">Logbook</h2>
+          <h2 className="font-headline text-2xl font-light tracking-wide text-wm-text">Logbook</h2>
           <p className="text-sm text-wm-text2">
             {filtered.length} entr{filtered.length === 1 ? "y" : "ies"} · {vehicleTitle}
           </p>
         </div>
         <Link
           href={`/garage/${vehicleId}/logbook/new`}
-          className="rounded-md bg-wm-accent px-3 py-2 text-sm font-medium text-white"
+          className="label-technical border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
         >
           New Entry
         </Link>
@@ -113,10 +113,10 @@ export function VehicleLogbookClient({
             key={pill}
             type="button"
             onClick={() => setFilter(pill)}
-            className={`rounded-full px-3 py-1.5 text-xs ${
+            className={`label-technical rounded-sm px-3 py-1 transition-colors ${
               filter === pill
-                ? "bg-wm-accent text-white"
-                : "bg-wm-s2 text-wm-text2 hover:text-wm-text"
+                ? "border border-wm-accent bg-wm-accent-dark text-wm-accent"
+                : "border border-wm-border bg-wm-s2 text-wm-text3 hover:text-wm-text"
             }`}
           >
             {pill === "all" ? "All" : pill[0].toUpperCase() + pill.slice(1)}
@@ -128,7 +128,7 @@ export function VehicleLogbookClient({
         value={search}
         onChange={(e) => setSearch(e.target.value)}
         placeholder="Search entries..."
-        className="mt-4 w-full rounded-md border border-wm-border bg-wm-s1 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+        className="mt-4 w-full rounded-sm border border-wm-border bg-wm-s1 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
       />
 
       {query.isLoading ? (
@@ -138,11 +138,11 @@ export function VehicleLogbookClient({
           {(query.error as Error).message}
         </p>
       ) : filtered.length === 0 ? (
-        <div className="mt-8 rounded-xl border border-dashed border-wm-border bg-wm-s1 p-8 text-center">
+        <div className="mt-8 border border-dashed border-wm-border bg-wm-s1 p-8 text-center">
           <p className="text-sm text-wm-text2">No entries yet.</p>
           <Link
             href={`/garage/${vehicleId}/logbook/new`}
-            className="mt-4 inline-flex rounded-md bg-wm-accent px-3 py-2 text-sm font-medium text-white"
+            className="label-technical mt-4 inline-flex border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
           >
             Add your first entry
           </Link>
@@ -151,7 +151,7 @@ export function VehicleLogbookClient({
         <div className="mt-6 space-y-8">
           {grouped.map(([month, rows]) => (
             <section key={month}>
-              <h3 className="mb-3 text-xs font-semibold uppercase tracking-wider text-wm-text3">
+              <h3 className="label-technical mb-3 text-wm-text3">
                 {month}
               </h3>
               <div className="space-y-3">
@@ -169,7 +169,7 @@ export function VehicleLogbookClient({
           type="button"
           onClick={() => query.fetchNextPage()}
           disabled={query.isFetchingNextPage}
-          className="mt-6 rounded-md border border-wm-border bg-wm-s2 px-4 py-2 text-sm text-wm-text disabled:opacity-60"
+          className="label-technical mt-6 rounded-sm border border-wm-border bg-wm-s2 px-4 py-2 text-wm-text disabled:opacity-60"
         >
           {query.isFetchingNextPage ? "Loading..." : "Load more"}
         </button>

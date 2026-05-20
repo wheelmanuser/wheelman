@@ -43,12 +43,12 @@ function greetingForNow() {
 
 function SectionSkeleton() {
   return (
-    <div className="rounded-xl border border-wm-border bg-wm-s1 p-5">
-      <div className="h-4 w-40 animate-pulse rounded bg-wm-s3" />
+    <div className="border border-wm-border bg-wm-s1 p-5">
+      <div className="h-4 w-40 animate-pulse bg-wm-s3" />
       <div className="mt-4 space-y-2">
-        <div className="h-3 w-full animate-pulse rounded bg-wm-s3" />
-        <div className="h-3 w-4/5 animate-pulse rounded bg-wm-s3" />
-        <div className="h-3 w-2/3 animate-pulse rounded bg-wm-s3" />
+        <div className="h-3 w-full animate-pulse bg-wm-s3" />
+        <div className="h-3 w-4/5 animate-pulse bg-wm-s3" />
+        <div className="h-3 w-2/3 animate-pulse bg-wm-s3" />
       </div>
     </div>
   );
@@ -86,7 +86,7 @@ async function GreetingHeader() {
   return (
     <header className="flex items-start justify-between gap-4">
       <div>
-        <h2 className="text-4xl font-light tracking-wide text-wm-text">
+        <h2 className="font-headline text-4xl font-light tracking-wide text-wm-text">
           {greetingForNow()}, {displayName}
         </h2>
         <p className="mt-2 text-sm text-wm-text3">
@@ -95,7 +95,7 @@ async function GreetingHeader() {
       </div>
       <button
         type="button"
-        className="rounded-full border border-wm-border bg-wm-s1 p-2 text-wm-text2"
+        className="rounded-sm border border-wm-border bg-wm-s1 p-2 text-wm-text2"
         aria-label="Notifications"
       >
         <Bell className="h-5 w-5" />
@@ -114,11 +114,11 @@ async function GarageSection() {
   const shown = vehicles.slice(0, 3);
 
   return (
-    <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
+    <section className="border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s1 p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-xs uppercase tracking-widest text-wm-text3">Your Garage</h3>
+        <h3 className="label-technical text-wm-text3">Your Garage</h3>
         {vehicles.length > 3 && (
-          <Link href="/garage" className="text-xs text-wm-accent hover:underline">
+          <Link href="/garage" className="label-technical text-wm-accent hover:text-wm-text">
             View all →
           </Link>
         )}
@@ -126,7 +126,7 @@ async function GarageSection() {
       {shown.length === 0 ? (
         <Link
           href="/garage/add"
-          className="block rounded-lg border border-dashed border-wm-border bg-wm-s2 p-4 text-sm text-wm-text2 hover:bg-wm-s3"
+          className="block border border-dashed border-wm-border bg-wm-s2 p-4 text-sm text-wm-text2 hover:bg-wm-s3"
         >
           Add your first vehicle
         </Link>
@@ -136,9 +136,9 @@ async function GarageSection() {
             <Link
               key={v.id}
               href={`/garage/${v.id}`}
-              className="rounded-sm border border-wm-border bg-wm-s2 p-3 transition-colors hover:border-wm-accent/40"
+              className="border border-wm-border border-l-2 border-l-wm-accent-dark bg-wm-s2 p-3 transition-colors hover:border-l-wm-gold"
             >
-              <p className="text-sm font-medium text-wm-text">
+              <p className="font-headline text-sm font-medium text-wm-text">
                 {v.year} {v.make} {v.model}
               </p>
               <p className="mt-1 text-xs text-wm-text2">
@@ -185,10 +185,10 @@ async function RecentActivitySection() {
   }
 
   return (
-    <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
+    <section className="border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s1 p-5">
       <div className="mb-4 flex items-center justify-between">
-        <h3 className="text-xs uppercase tracking-widest text-wm-text3">Recent Logbook Activity</h3>
-        <Link href="/garage" className="text-xs text-wm-accent hover:underline">
+        <h3 className="label-technical text-wm-text3">Recent Logbook Activity</h3>
+        <Link href="/garage" className="label-technical text-wm-accent hover:text-wm-text">
           View full logbook →
         </Link>
       </div>
@@ -200,17 +200,17 @@ async function RecentActivitySection() {
             <Link
               key={e.id}
               href={`/garage/${e.vehicle_id}/logbook`}
-              className="flex items-center justify-between border border-wm-border bg-wm-s2 px-3 py-2 transition-colors hover:border-wm-accent/40"
+              className="flex items-center justify-between border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s2 px-3 py-2 transition-colors hover:border-l-wm-gold"
             >
               <div className="min-w-0">
                 <p className="truncate text-sm text-wm-text">
                   {vehicleMap.get(e.vehicle_id) ?? "Vehicle"} · {e.title}
                 </p>
-                <p className="text-xs text-wm-text3">
+                <p className="label-technical mt-0.5 text-wm-text3">
                   {e.event_date} · {e.category}
                 </p>
               </div>
-              <p className="ml-3 text-sm text-wm-gold">${Number(e.total_cost ?? 0).toFixed(2)}</p>
+              <p className="ml-3 text-sm font-medium text-wm-gold">${Number(e.total_cost ?? 0).toFixed(2)}</p>
             </Link>
           ))
         )}
@@ -316,8 +316,8 @@ async function ServiceRemindersSection() {
   const shown = due.slice(0, 5);
 
   return (
-    <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
-      <h3 className="mb-4 text-xs uppercase tracking-widest text-wm-text3">Service Reminders</h3>
+    <section className="border border-wm-border border-l-4 border-l-wm-red/60 bg-wm-s1 p-5">
+      <h3 className="label-technical mb-4 text-wm-text3">Service Reminders</h3>
       {shown.length === 0 ? (
         <p className="text-sm text-wm-text2">All services are up to date.</p>
       ) : (
@@ -326,23 +326,25 @@ async function ServiceRemindersSection() {
             <Link
               key={r.id}
               href={`/garage/${r.vehicle_id}`}
-              className="flex items-center justify-between border border-wm-border bg-wm-s2 px-3 py-2 transition-colors hover:border-wm-accent/40"
+              className={`flex items-center justify-between border border-wm-border bg-wm-s2 px-3 py-2 transition-colors hover:border-wm-accent/40 ${
+                r.is_overdue ? "border-l-4 border-l-wm-red" : "border-l-4 border-l-wm-gold"
+              }`}
             >
               <div className="min-w-0">
                 <div className="flex flex-wrap items-center gap-2">
-                  <p className="text-sm text-wm-text">{r.service_name}</p>
-                  <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${
-                    r.is_overdue ? "bg-wm-red/20 text-wm-red" : "bg-wm-orange/20 text-wm-orange"
+                  <p className="font-headline text-sm font-medium text-wm-text">{r.service_name}</p>
+                  <span className={`label-technical rounded-sm px-2 py-0.5 ${
+                    r.is_overdue ? "bg-wm-red/20 text-wm-red" : "bg-wm-gold/20 text-wm-gold"
                   }`}>
                     {r.is_overdue ? "Overdue" : "Due soon"}
                   </span>
                 </div>
-                <p className="text-xs text-wm-text3">
+                <p className="label-technical mt-0.5 text-wm-text3">
                   {r.vehicle.year} {r.vehicle.make} {r.vehicle.model}
                 </p>
               </div>
               {r.miles_remaining != null && (
-                <p className={`ml-3 shrink-0 text-xs ${r.is_overdue ? "text-wm-red" : "text-wm-orange"}`}>
+                <p className={`ml-3 shrink-0 text-xs font-medium ${r.is_overdue ? "text-wm-red" : "text-wm-gold"}`}>
                   {Math.round(r.miles_remaining).toLocaleString()} mi
                 </p>
               )}
@@ -370,32 +372,32 @@ async function QuickActionsSection() {
   const viewCostsHref = primaryVehicle ? `/garage/${primaryVehicle.id}/costs` : "/garage";
 
   return (
-    <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
-      <h3 className="mb-4 text-xs uppercase tracking-widest text-wm-text3">Quick Actions</h3>
+    <section className="border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s1 p-5">
+      <h3 className="label-technical mb-4 text-wm-text3">Quick Actions</h3>
       <div className="grid gap-3 sm:grid-cols-3">
         <Link
           href="/garage/add"
-          className="group rounded-sm border border-wm-border bg-wm-s2 p-4 transition-colors hover:border-wm-accent/40"
+          className="group border border-wm-border border-l-2 border-l-wm-accent-dark bg-wm-s2 p-4 transition-colors hover:border-l-wm-gold"
         >
-          <p className="text-sm font-medium text-wm-text">Add Vehicle</p>
+          <p className="font-headline text-sm font-medium text-wm-text">Add Vehicle</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
             Create vehicle <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </p>
         </Link>
         <Link
           href={logServiceHref}
-          className="group rounded-sm border border-wm-border bg-wm-s2 p-4 transition-colors hover:border-wm-accent/40"
+          className="group border border-wm-border border-l-2 border-l-wm-accent-dark bg-wm-s2 p-4 transition-colors hover:border-l-wm-gold"
         >
-          <p className="text-sm font-medium text-wm-text">Log Service</p>
+          <p className="font-headline text-sm font-medium text-wm-text">Log Service</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
             Add log entry <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </p>
         </Link>
         <Link
           href={viewCostsHref}
-          className="group rounded-sm border border-wm-border bg-wm-s2 p-4 transition-colors hover:border-wm-accent/40"
+          className="group border border-wm-border border-l-2 border-l-wm-accent-dark bg-wm-s2 p-4 transition-colors hover:border-l-wm-gold"
         >
-          <p className="text-sm font-medium text-wm-text">View Costs</p>
+          <p className="font-headline text-sm font-medium text-wm-text">View Costs</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
             Open dashboard <ArrowRight className="ml-1 h-3.5 w-3.5" />
           </p>

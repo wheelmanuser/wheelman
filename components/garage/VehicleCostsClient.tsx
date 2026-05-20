@@ -89,17 +89,17 @@ export function VehicleCostsClient({
   return (
     <div className="space-y-6">
       <section className="grid grid-cols-1 gap-4 md:grid-cols-3">
-        <article className="rounded-xl border border-wm-border bg-wm-s1 p-4">
-          <p className="text-xs uppercase tracking-wide text-wm-text3">Total Spend</p>
-          <p className="mt-2 text-2xl font-semibold text-wm-gold">${totalSpend.toFixed(2)}</p>
+        <article className="border border-wm-border border-l-4 border-l-wm-gold bg-wm-s1 p-4">
+          <p className="label-technical text-wm-text3">Total Spend</p>
+          <p className="font-headline mt-2 text-2xl font-light text-wm-gold">${totalSpend.toFixed(2)}</p>
         </article>
-        <article className="rounded-xl border border-wm-border bg-wm-s1 p-4">
-          <p className="text-xs uppercase tracking-wide text-wm-text3">Cost Per Mile</p>
-          <p className="mt-2 text-2xl font-semibold text-wm-text">${costPerMile.toFixed(2)}</p>
+        <article className="border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s1 p-4">
+          <p className="label-technical text-wm-text3">Cost Per Mile</p>
+          <p className="font-headline mt-2 text-2xl font-light text-wm-text">${costPerMile.toFixed(2)}</p>
         </article>
-        <article className="rounded-xl border border-wm-border bg-wm-s1 p-4">
-          <p className="text-xs uppercase tracking-wide text-wm-text3">YTD Spend</p>
-          <p className="mt-2 text-2xl font-semibold text-wm-text">${ytdSpend.toFixed(2)}</p>
+        <article className="border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s1 p-4">
+          <p className="label-technical text-wm-text3">YTD Spend</p>
+          <p className="font-headline mt-2 text-2xl font-light text-wm-text">${ytdSpend.toFixed(2)}</p>
         </article>
       </section>
 
@@ -109,8 +109,8 @@ export function VehicleCostsClient({
         defaultYear={currentYear}
       />
 
-      <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
-        <h3 className="mb-4 text-sm font-semibold text-wm-text">By Category</h3>
+      <section className="border border-wm-border bg-wm-s1 p-5">
+        <h3 className="label-technical mb-4 text-wm-text3">By Category</h3>
         <div className="space-y-3">
           {categoryTotals.map((row) => {
             const meta = categoryMeta(row.category);
@@ -125,9 +125,9 @@ export function VehicleCostsClient({
                     ${row.total.toFixed(2)} · {row.pct.toFixed(1)}%
                   </p>
                 </div>
-                <div className="h-2 w-full rounded-full bg-wm-s3">
+                <div className="h-1.5 w-full bg-wm-s3">
                   <div
-                    className={`h-2 rounded-full ${meta.bar}`}
+                    className={`h-1.5 ${meta.bar}`}
                     style={{ width: `${Math.min(100, row.pct)}%` }}
                   />
                 </div>
@@ -137,15 +137,15 @@ export function VehicleCostsClient({
         </div>
       </section>
 
-      <section className="rounded-xl border border-wm-border bg-wm-s1 p-5">
-        <h3 className="mb-4 text-sm font-semibold text-wm-text">Recent Entries</h3>
+      <section className="border border-wm-border bg-wm-s1 p-5">
+        <h3 className="label-technical mb-4 text-wm-text3">Recent Entries</h3>
         <ul className="space-y-2">
           {recent.map((entry) => {
             const meta = categoryMeta(entry.category);
             return (
               <li
                 key={entry.id}
-                className="flex items-center justify-between rounded-lg border border-wm-border bg-wm-s2 px-3 py-2"
+                className="flex items-center justify-between rounded-sm border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s2 px-3 py-2"
               >
                 <div className="min-w-0">
                   <p className="truncate text-sm text-wm-text">

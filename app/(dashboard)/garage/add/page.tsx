@@ -80,11 +80,11 @@ export default function GarageAddPage() {
         ← Back to Garage
       </Link>
 
-      <h2 className="mt-4 text-2xl font-semibold text-wm-text">Add Vehicle</h2>
+      <h2 className="font-headline mt-4 text-2xl font-light tracking-wide text-wm-text">Add Vehicle</h2>
 
       <form
           onSubmit={form.handleSubmit(onSubmit)}
-          className="mt-6 space-y-4 rounded-xl border border-wm-border bg-wm-s1 p-6"
+          className="mt-6 space-y-4 border border-wm-border bg-wm-s1 p-6"
         >
           {VEHICLE_FORM_FIELDS.map((field) => {
             const errorMessage = form.formState.errors[field.name]?.message;
@@ -92,7 +92,7 @@ export default function GarageAddPage() {
 
             return (
               <label key={field.name} className="block">
-                <span className="mb-1 block text-sm text-wm-text2">{field.label}</span>
+                <span className="label-technical mb-1 block text-wm-text3">{field.label}</span>
                 <input
                   type={field.type}
                   {...form.register(field.name, {
@@ -100,7 +100,7 @@ export default function GarageAddPage() {
                       ? (v) => (v === "" ? undefined : Number(v))
                       : undefined,
                   })}
-                  className="w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+                  className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
                 />
                 {errorMessage && (
                   <span className="mt-1 block text-xs text-wm-red">{errorMessage}</span>
@@ -118,7 +118,7 @@ export default function GarageAddPage() {
           <button
             type="submit"
             disabled={isSubmitting}
-            className="rounded-md bg-wm-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
+            className="rounded-sm border border-wm-accent bg-wm-accent-dark px-4 py-2 text-xs uppercase tracking-wider text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
           >
             {isSubmitting ? "Saving..." : "Save Vehicle"}
           </button>

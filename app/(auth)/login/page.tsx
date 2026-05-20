@@ -80,8 +80,8 @@ export default function LoginPage() {
 
   return (
     <main className="flex min-h-screen items-center justify-center bg-wm-bg px-6">
-      <section className="w-full max-w-md rounded-xl border border-wm-border bg-wm-s1 p-8">
-        <h1 className="text-center text-4xl font-extrabold tracking-[0.18em]">
+      <section className="w-full max-w-md border border-wm-border border-l-4 border-l-wm-accent bg-wm-s1 p-8">
+        <h1 className="font-headline text-center text-4xl font-bold tracking-[0.18em]">
           <span className="text-wm-text">WHEEL</span>
           <span className="text-wm-gold">MAN</span>
         </h1>
@@ -99,7 +99,7 @@ export default function LoginPage() {
           type="button"
           onClick={handleGoogleSignIn}
           disabled={isLoading}
-          className="mt-6 w-full rounded-md bg-wm-accent px-4 py-2 text-sm font-medium text-white transition-opacity disabled:cursor-not-allowed disabled:opacity-60"
+          className="label-technical mt-6 w-full rounded-sm border border-wm-accent bg-wm-accent-dark px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:cursor-not-allowed disabled:opacity-60"
         >
           {isLoading ? "Redirecting..." : "Continue with Google"}
         </button>

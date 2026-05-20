@@ -7,10 +7,7 @@ export const TIER_LIMITS = {
 
 export type SubscriptionTier = keyof typeof TIER_LIMITS;
 
-export function canAddVehicle(currentCount: number, tier: string): boolean {
-  const maxVehicles =
-    tier in TIER_LIMITS
-      ? TIER_LIMITS[tier as SubscriptionTier].maxVehicles
-      : TIER_LIMITS.free.maxVehicles;
-  return currentCount < maxVehicles;
+export function canAddVehicle(_currentCount: number, _tier: string): boolean {
+  // TODO: re-enable tier limits before launch
+  return true;
 }

@@ -2,11 +2,10 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
-import { canAddVehicle } from "@/constants/subscriptions";
 import {
   vehicleFormSchema,
   VEHICLE_FORM_FIELDS,
@@ -19,7 +18,6 @@ export default function GarageAddPage() {
 
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
-  const [canAdd, setCanAdd] = useState<boolean | null>(null);
 
   const form = useForm<VehicleFormValues>({
     resolver: zodResolver(vehicleFormSchema),
@@ -35,26 +33,6 @@ export default function GarageAddPage() {
       estimated_miles_per_year: undefined,
     },
   });
-
-  // Check whether the user is allowed to add another vehicle
-  useEffect(() => {
-    const checkLimit = async () => {
-      const { count } = await supabase
-        .from("vehicles")
-        .select("id", { count: "exact", head: true });
-
-      const { data: userRow } = await supabase
-        .from("users")
-        .select("subscription_tier")
-        .maybeSingle();
-
-      const tier =
-        (userRow as { subscription_tier?: string } | null)?.subscription_tier ??
-        "free";
-      setCanAdd(canAddVehicle(count ?? 0, tier));
-    };
-    void checkLimit();
-  }, [supabase]);
 
   const onSubmit = async (values: VehicleFormValues) => {
     setIsSubmitting(true);
@@ -104,20 +82,7 @@ export default function GarageAddPage() {
 
       <h2 className="mt-4 text-2xl font-semibold text-wm-text">Add Vehicle</h2>
 
-      {canAdd === false ? (
-        <div className="mt-6 rounded-xl border border-wm-gold/40 bg-wm-s1 p-6">
-          <p className="text-sm text-wm-text2">
-            Your Free plan supports 1 vehicle. Upgrade to add more vehicles.
-          </p>
-          <button
-            type="button"
-            className="mt-4 rounded-md bg-wm-gold px-4 py-2 text-sm font-medium text-wm-bg"
-          >
-            Upgrade Plan
-          </button>
-        </div>
-      ) : (
-        <form
+      <form
           onSubmit={form.handleSubmit(onSubmit)}
           className="mt-6 space-y-4 rounded-xl border border-wm-border bg-wm-s1 p-6"
         >
@@ -152,13 +117,12 @@ export default function GarageAddPage() {
 
           <button
             type="submit"
-            disabled={isSubmitting || canAdd === null}
+            disabled={isSubmitting}
             className="rounded-md bg-wm-accent px-4 py-2 text-sm font-medium text-white disabled:opacity-60"
           >
             {isSubmitting ? "Saving..." : "Save Vehicle"}
           </button>
         </form>
-      )}
     </div>
   );
 }

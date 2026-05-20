@@ -3,14 +3,14 @@
 import Link from "next/link";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
-import { Car, Home, LogOut, Menu, X } from "lucide-react";
 import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
+import { Icon } from "@/components/ui/Icon";
 
 const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: Home },
-  { label: "My Garage", href: "/garage", icon: Car },
+  { label: "Dashboard", href: "/dashboard", iconName: "speed" },
+  { label: "My Garage", href: "/garage", iconName: "directions_car" },
 ];
 
 function getInitial(nameOrEmail: string | null | undefined): string {
@@ -75,14 +75,13 @@ export default function DashboardLayout({
               onClick={() => setMenuOpen(false)}
               aria-label="Close sidebar"
             >
-              <X className="h-5 w-5" />
+              <Icon name="close" size={20} />
             </button>
           </div>
         </div>
 
         <nav className="space-y-0.5">
           {navItems.map((item) => {
-            const Icon = item.icon;
             const active =
               pathname === item.href || pathname.startsWith(`${item.href}/`);
             return (
@@ -97,7 +96,7 @@ export default function DashboardLayout({
                     : "border-transparent text-wm-text2 hover:bg-wm-s2/60 hover:text-wm-text",
                 )}
               >
-                <Icon className="h-3.5 w-3.5" />
+                <Icon name={item.iconName} filled={active} size={18} />
                 {item.label}
               </Link>
             );
@@ -117,7 +116,7 @@ export default function DashboardLayout({
             disabled={signingOut}
             className="mt-3 flex w-full items-center justify-center gap-2 border border-wm-border px-3 py-2 text-xs uppercase tracking-widest text-wm-text3 hover:border-wm-accent/40 hover:text-wm-text2 disabled:opacity-60"
           >
-            <LogOut className="h-3 w-3" />
+            <Icon name="logout" size={14} />
             {signingOut ? "Signing out..." : "Sign out"}
           </button>
         </div>
@@ -131,7 +130,7 @@ export default function DashboardLayout({
             onClick={() => setMenuOpen(true)}
             aria-label="Open sidebar"
           >
-            <Menu className="h-5 w-5" />
+            <Icon name="menu" size={20} />
           </button>
           <h1 className="font-headline text-lg tracking-wide text-wm-text">{title}</h1>
         </header>

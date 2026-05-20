@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { Icon } from "@/components/ui/Icon";
 import type {
   LogbookAttachment,
   LogbookCategory,
@@ -16,12 +17,12 @@ export type LogbookEntryWithDetails = LogbookEntry & {
 
 function categoryMeta(category: LogbookCategory) {
   if (category === "maintenance") {
-    return { icon: "🔧", bg: "bg-wm-accent/20", text: "text-wm-accent", borderL: "border-l-wm-accent-dark" };
+    return { iconName: "build", bg: "bg-wm-accent/20", text: "text-wm-accent", borderL: "border-l-wm-accent-dark" };
   }
   if (category === "modification") {
-    return { icon: "⚙️", bg: "bg-wm-purple/20", text: "text-wm-purple", borderL: "border-l-wm-purple" };
+    return { iconName: "tune", bg: "bg-wm-purple/20", text: "text-wm-purple", borderL: "border-l-wm-purple" };
   }
-  return { icon: "📝", bg: "bg-wm-gold/20", text: "text-wm-gold", borderL: "border-l-wm-gold" };
+  return { iconName: "description", bg: "bg-wm-gold/20", text: "text-wm-gold", borderL: "border-l-wm-gold" };
 }
 
 export function EntryCard({ entry }: { entry: LogbookEntryWithDetails }) {
@@ -36,9 +37,9 @@ export function EntryCard({ entry }: { entry: LogbookEntryWithDetails }) {
         className="flex w-full items-start gap-3 p-4 text-left"
       >
         <div
-          className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-sm ${meta.bg} text-base`}
+          className={`mt-0.5 flex h-9 w-9 items-center justify-center rounded-sm ${meta.bg} ${meta.text}`}
         >
-          {meta.icon}
+          <Icon name={meta.iconName} size={18} />
         </div>
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-2">

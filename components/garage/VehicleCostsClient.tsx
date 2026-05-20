@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
+import { Icon } from "@/components/ui/Icon";
 import { MonthlySpendChart } from "@/components/garage/MonthlySpendChart";
 import type { LogbookCategory } from "@/types/database";
 
@@ -16,9 +17,9 @@ type CostEntry = {
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 function categoryMeta(category: LogbookCategory) {
-  if (category === "maintenance") return { icon: "🔧", label: "Maintenance", bar: "bg-wm-accent" };
-  if (category === "modification") return { icon: "⚙️", label: "Modification", bar: "bg-wm-purple" };
-  return { icon: "📝", label: "Other", bar: "bg-wm-gold" };
+  if (category === "maintenance") return { iconName: "build", label: "Maintenance", bar: "bg-wm-accent", iconColor: "text-wm-accent" };
+  if (category === "modification") return { iconName: "tune", label: "Modification", bar: "bg-wm-purple", iconColor: "text-wm-purple" };
+  return { iconName: "description", label: "Other", bar: "bg-wm-gold", iconColor: "text-wm-gold" };
 }
 
 export function VehicleCostsClient({
@@ -117,8 +118,8 @@ export function VehicleCostsClient({
             return (
               <div key={row.category}>
                 <div className="mb-1 flex items-center justify-between text-sm">
-                  <p className="text-wm-text">
-                    <span className="mr-2">{meta.icon}</span>
+                  <p className="flex items-center gap-2 text-wm-text">
+                    <Icon name={meta.iconName} size={16} className={meta.iconColor} />
                     {meta.label}
                   </p>
                   <p className="text-wm-gold">
@@ -148,8 +149,8 @@ export function VehicleCostsClient({
                 className="flex items-center justify-between rounded-sm border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s2 px-3 py-2"
               >
                 <div className="min-w-0">
-                  <p className="truncate text-sm text-wm-text">
-                    <span className="mr-2">{meta.icon}</span>
+                  <p className="flex items-center gap-2 truncate text-sm text-wm-text">
+                    <Icon name={meta.iconName} size={14} className={meta.iconColor} />
                     {entry.title}
                   </p>
                   <p className="text-xs text-wm-text3">{entry.event_date}</p>

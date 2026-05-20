@@ -12,6 +12,7 @@ import {
 } from "@/lib/service-schedule-display";
 import { VehicleLogbookClient } from "@/components/logbook/VehicleLogbookClient";
 import { VehicleCostsClient } from "@/components/garage/VehicleCostsClient";
+import { Icon } from "@/components/ui/Icon";
 import type { Vehicle } from "@/types/database";
 
 type Tab = "overview" | "logbook" | "costs";
@@ -449,26 +450,29 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                               </p>
                             )}
                           </div>
-                          <div className="flex shrink-0 gap-3">
+                          <div className="flex shrink-0 items-center gap-1">
                             <button
                               type="button"
                               onClick={() => openDoneModal(s)}
-                              className="text-xs uppercase tracking-wider text-wm-accent hover:opacity-70"
+                              className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-accent hover:opacity-70"
                             >
+                              <Icon name="task_alt" size={14} />
                               Done
                             </button>
                             <button
                               type="button"
                               onClick={() => openEditDrawer(s)}
-                              className="text-xs uppercase tracking-wider text-wm-text3 hover:text-wm-text2"
+                              className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-text3 hover:text-wm-text2"
                             >
+                              <Icon name="edit" size={14} />
                               Edit
                             </button>
                             <button
                               type="button"
                               onClick={() => onDeleteReminder(s.id)}
-                              className="text-xs uppercase tracking-wider text-wm-red hover:opacity-70"
+                              className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-red hover:opacity-70"
                             >
+                              <Icon name="delete_outline" size={14} />
                               Delete
                             </button>
                           </div>
@@ -513,7 +517,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
             <div className="w-full max-w-md rounded-xl border border-wm-border bg-wm-s1 p-6 shadow-xl">
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-wm-text">Mark as Done</h3>
-                <button type="button" onClick={closeDoneModal} className="text-wm-text2 hover:text-wm-text">✕</button>
+                <button type="button" onClick={closeDoneModal} className="text-wm-text2 hover:text-wm-text"><Icon name="close" size={20} /></button>
               </div>
 
               <form
@@ -607,7 +611,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
               <h3 className="font-headline text-xl tracking-wide text-wm-text">
                 {editingSchedule ? "Edit Reminder" : "New Reminder"}
               </h3>
-              <button type="button" onClick={closeDrawer} className="text-wm-text2 hover:text-wm-text">✕</button>
+              <button type="button" onClick={closeDrawer} className="text-wm-text2 hover:text-wm-text"><Icon name="close" size={20} /></button>
             </div>
 
             <form

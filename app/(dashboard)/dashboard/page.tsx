@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { Suspense } from "react";
-import { ArrowRight, Bell } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { createClient } from "@/lib/supabase/server";
 export const dynamic = "force-dynamic";
 
@@ -98,7 +98,7 @@ async function GreetingHeader() {
         className="rounded-sm border border-wm-border bg-wm-s1 p-2 text-wm-text2"
         aria-label="Notifications"
       >
-        <Bell className="h-5 w-5" />
+        <Icon name="notifications" size={20} />
       </button>
     </header>
   );
@@ -381,7 +381,7 @@ async function QuickActionsSection() {
         >
           <p className="font-headline text-sm font-medium text-wm-text">Add Vehicle</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
-            Create vehicle <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            Create vehicle <Icon name="arrow_forward" size={14} className="ml-1" />
           </p>
         </Link>
         <Link
@@ -390,7 +390,7 @@ async function QuickActionsSection() {
         >
           <p className="font-headline text-sm font-medium text-wm-text">Log Service</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
-            Add log entry <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            Add log entry <Icon name="arrow_forward" size={14} className="ml-1" />
           </p>
         </Link>
         <Link
@@ -399,7 +399,7 @@ async function QuickActionsSection() {
         >
           <p className="font-headline text-sm font-medium text-wm-text">View Costs</p>
           <p className="mt-1 flex items-center text-xs text-wm-text2 group-hover:text-wm-text">
-            Open dashboard <ArrowRight className="ml-1 h-3.5 w-3.5" />
+            Open dashboard <Icon name="arrow_forward" size={14} className="ml-1" />
           </p>
         </Link>
       </div>

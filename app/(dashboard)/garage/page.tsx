@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
-import { Plus } from "lucide-react";
+import { Icon } from "@/components/ui/Icon";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleCard } from "@/components/garage/VehicleCard";
 import { useVehicleStore } from "@/stores/vehicleStore";
@@ -158,7 +158,7 @@ export default function GaragePage() {
           href="/garage/add"
           className="label-technical inline-flex items-center gap-2 border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
         >
-          <Plus className="h-4 w-4" />
+          <Icon name="add" size={16} />
           Add Vehicle
         </Link>
       </div>

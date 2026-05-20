@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { usePathname, useRouter } from "next/navigation";
 import { useMemo, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -65,10 +66,14 @@ export default function DashboardLayout({
       >
         <div className="mb-8 border-b border-wm-border pb-6">
           <div className="flex items-center justify-between">
-            <p className="text-2xl font-light tracking-[0.35em]">
-              <span className="text-wm-text">WHEEL</span>
-              <span className="text-wm-gold">MAN</span>
-            </p>
+            <Image
+              src="/wheelman-logo.png"
+              alt="Wheelman"
+              width={140}
+              height={36}
+              priority
+              className="h-8 w-auto"
+            />
             <button
               type="button"
               className="p-1 text-wm-text2 hover:text-wm-text md:hidden"

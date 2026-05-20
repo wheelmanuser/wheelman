@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import Image from "next/image";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { createClient } from "@/lib/supabase/client";
@@ -81,10 +82,16 @@ export default function LoginPage() {
   return (
     <main className="flex min-h-screen items-center justify-center bg-wm-bg px-6">
       <section className="w-full max-w-md border border-wm-border border-l-4 border-l-wm-accent bg-wm-s1 p-8">
-        <h1 className="font-headline text-center text-4xl font-bold tracking-[0.18em]">
-          <span className="text-wm-text">WHEEL</span>
-          <span className="text-wm-gold">MAN</span>
-        </h1>
+        <div className="flex justify-center">
+          <Image
+            src="/wheelman-logo.png"
+            alt="Wheelman"
+            width={180}
+            height={46}
+            priority
+            className="h-12 w-auto"
+          />
+        </div>
         <p className="mt-3 text-center text-sm text-wm-text2">
           Your premium automotive companion
         </p>

@@ -22,15 +22,6 @@ type LogbookRow = {
   category: "maintenance" | "modification" | "other";
 };
 
-type ScheduleRow = {
-  id: string;
-  vehicle_id: string;
-  service_name: string;
-  interval_miles: number | null;
-  interval_months: number | null;
-  last_performed_miles: number | null;
-  last_performed_date: string | null;
-};
 
 type DueReminder = {
   id: string;

@@ -112,6 +112,7 @@ export function SettingsClient({
 
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState<string | null>(null);
   const [avatarUploading, setAvatarUploading] = useState(false);
   const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
 
@@ -137,35 +138,47 @@ export function SettingsClient({
 
   const handleSave = async () => {
     setSaving(true);
-    const { data: { user: liveUser } } = await supabase.auth.getUser();
-    if (!liveUser) {
-      console.error("Settings save error: no authenticated user");
+    setSaveError(null);
+
+    const { data: authData, error: authError } = await supabase.auth.getUser();
+    if (authError || !authData.user) {
+      const msg = authError?.message ?? "Not authenticated";
+      console.error("[Settings] getUser failed:", msg);
+      setSaveError(`Auth error: ${msg}`);
       setSaving(false);
       return;
     }
-    console.log("[Settings] Saving form state:", form);
+
+    const liveUserId = authData.user.id;
+    const payload = {
+      user_id: liveUserId,
+      display_name: form.display_name || null,
+      driver_type: form.driver_type,
+      distance_unit: form.distance_unit,
+      timezone: form.timezone,
+      theme: form.theme,
+      email_reminders: form.email_reminders,
+      sms_reminders: form.sms_reminders,
+      phone_number: form.phone_number || null,
+      reminder_lead_time: form.reminder_lead_time,
+      reminder_frequency: form.reminder_frequency,
+      avatar_url: form.avatar_url,
+      updated_at: new Date().toISOString(),
+    };
+
+    console.log("[Settings] user_id:", liveUserId);
+    console.log("[Settings] payload:", payload);
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any).from("user_settings").upsert(
-      {
-        user_id: liveUser.id,
-        display_name: form.display_name || null,
-        driver_type: form.driver_type,
-        distance_unit: form.distance_unit,
-        timezone: form.timezone,
-        theme: form.theme,
-        email_reminders: form.email_reminders,
-        sms_reminders: form.sms_reminders,
-        phone_number: form.phone_number || null,
-        reminder_lead_time: form.reminder_lead_time,
-        reminder_frequency: form.reminder_frequency,
-        avatar_url: form.avatar_url,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: "user_id" },
-    );
+    const { error } = await (supabase as any)
+      .from("user_settings")
+      .upsert(payload, { onConflict: "user_id" });
+
+    console.log("[Settings] upsert error:", error);
+
     setSaving(false);
     if (error) {
-      console.error("Settings save error:", error);
+      setSaveError(`Save failed: ${error.message} (code: ${error.code})`);
     } else {
       showSaved();
     }
@@ -444,6 +457,14 @@ export function SettingsClient({
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
+
+      {/* Error banner */}
+      {saveError && (
+        <div className="fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 border border-wm-red bg-wm-red/10 px-6 py-3 shadow-xl">
+          <Icon name="error" className="text-wm-red" size={18} />
+          <span className="label-technical text-wm-red tracking-widest">{saveError}</span>
+        </div>
+      )}
 
       {/* Toast */}
       {saved && (

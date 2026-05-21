@@ -3,20 +3,25 @@
 import Link from "next/link";
 import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
+import { formatDistanceUnit } from "@/lib/format-distance";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import type { Vehicle } from "@/types/database";
 
 type VehicleProp = Pick<Vehicle, "id" | "year" | "make" | "model" | "nickname">;
 
-const METRICS = [
-  { icon: "speed", label: "Live Speed", value: "— mph" },
-  { icon: "local_gas_station", label: "Fuel Level", value: "—%" },
-  { icon: "thermostat", label: "Engine Temp", value: "—°F" },
-  { icon: "battery_charging_full", label: "Battery", value: "— V" },
-  { icon: "route", label: "Odometer", value: "— mi" },
-  { icon: "warning_amber", label: "DTC Codes", value: "—" },
-];
-
 export function TelematicsClient({ vehicles }: { vehicles: VehicleProp[] }) {
+  const { settings } = useUserSettings();
+  const distanceUnit = settings.distance_unit;
+
+  const METRICS = [
+    { icon: "speed", label: "Live Speed", value: "— mph" },
+    { icon: "local_gas_station", label: "Fuel Level", value: "—%" },
+    { icon: "thermostat", label: "Engine Temp", value: "—°F" },
+    { icon: "battery_charging_full", label: "Battery", value: "— V" },
+    { icon: "route", label: "Odometer", value: `— ${formatDistanceUnit(distanceUnit)}` },
+    { icon: "warning_amber", label: "DTC Codes", value: "—" },
+  ];
+
   return (
     <div className="mx-auto max-w-5xl space-y-6">
       {/* Page header */}

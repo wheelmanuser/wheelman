@@ -2,6 +2,8 @@
 
 import { useState } from "react";
 import { Icon } from "@/components/ui/Icon";
+import { formatDistance } from "@/lib/format-distance";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import type {
   LogbookAttachment,
   LogbookCategory,
@@ -28,6 +30,8 @@ function categoryMeta(category: LogbookCategory) {
 export function EntryCard({ entry }: { entry: LogbookEntryWithDetails }) {
   const [expanded, setExpanded] = useState(false);
   const meta = categoryMeta(entry.category);
+  const { settings } = useUserSettings();
+  const distanceUnit = settings.distance_unit;
 
   return (
     <article className={`rounded-none border border-wm-border border-l-4 ${meta.borderL} bg-wm-s1 transition hover:border-wm-accent/60`}>
@@ -49,7 +53,7 @@ export function EntryCard({ entry }: { entry: LogbookEntryWithDetails }) {
             </span>
           </div>
           <p className="mt-1 text-xs text-wm-text2">
-            {entry.event_date} · {entry.odometer_miles ?? "—"} mi
+            {entry.event_date} · {formatDistance(entry.odometer_miles, distanceUnit)}
           </p>
           <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
             {entry.total_cost != null && entry.total_cost > 0 && (

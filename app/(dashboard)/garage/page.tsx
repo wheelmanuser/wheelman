@@ -4,19 +4,21 @@ import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
+import { formatDistance } from "@/lib/format-distance";
 import { createClient } from "@/lib/supabase/client";
 import { VehicleCard } from "@/components/garage/VehicleCard";
 import { useVehicleStore } from "@/stores/vehicleStore";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import type { ScheduleWithPct } from "@/lib/service-schedule-display";
 import type { Vehicle } from "@/types/database";
 
 type FilterMode = "all" | "due";
 type VehicleReminders = { vehicle: Vehicle; schedules: ScheduleWithPct[] };
 
-function formatNextDue(s: ScheduleWithPct) {
+function formatNextDue(s: ScheduleWithPct, distanceUnit: string) {
   const parts: string[] = [];
   if (s.computed_next_due_miles != null)
-    parts.push(`${s.computed_next_due_miles.toLocaleString()} mi`);
+    parts.push(formatDistance(s.computed_next_due_miles, distanceUnit));
   if (s.computed_next_due_date != null) {
     const d = new Date(s.computed_next_due_date);
     parts.push(d.toLocaleDateString("en-US", { month: "short", year: "numeric" }));
@@ -27,6 +29,8 @@ function formatNextDue(s: ScheduleWithPct) {
 export default function GaragePage() {
   const supabase = createClient();
   const { vehicles, fetchVehicles } = useVehicleStore();
+  const { settings } = useUserSettings();
+  const distanceUnit = settings.distance_unit;
   const [filter, setFilter] = useState<FilterMode>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -232,13 +236,13 @@ export default function GaragePage() {
                         </span>
                       </div>
                       <p className="mt-1 text-xs text-wm-text2">
-                        Next due: {formatNextDue(s)}
+                        Next due: {formatNextDue(s, distanceUnit)}
                       </p>
                       {s.miles_remaining != null && (
                         <p className="mt-0.5 text-xs text-wm-text2">
-                          Miles remaining:{" "}
+                          Remaining:{" "}
                           <span className={s.is_overdue ? "text-wm-red" : "text-wm-gold"}>
-                            {Math.round(s.miles_remaining).toLocaleString()}
+                            {formatDistance(s.miles_remaining, distanceUnit)}
                           </span>
                         </p>
                       )}

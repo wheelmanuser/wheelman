@@ -14,6 +14,8 @@ import { VehicleLogbookClient } from "@/components/logbook/VehicleLogbookClient"
 import { VehicleCostsClient } from "@/components/garage/VehicleCostsClient";
 import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
+import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import type { Vehicle } from "@/types/database";
 
 type Tab = "overview" | "logbook" | "costs" | "telematics";
@@ -45,6 +47,8 @@ type Props = {
 
 export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Props) {
   const router = useRouter();
+  const { settings } = useUserSettings();
+  const distanceUnit = settings.distance_unit;
   const [tab, setTab] = useState<Tab>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleWithPct | null>(null);
@@ -72,9 +76,12 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
       ["Colour", vehicle.color ?? "—"],
       ["Transmission", vehicle.transmission ?? "—"],
       ["Purchase Price", vehicle.purchase_price != null ? `$${vehicle.purchase_price}` : "—"],
-      ["Est. Mi/Year", vehicle.estimated_miles_per_year != null ? String(vehicle.estimated_miles_per_year) : "—"],
+      [
+        `Est. ${formatDistanceUnit(distanceUnit)}/Year`,
+        formatDistance(vehicle.estimated_miles_per_year, distanceUnit),
+      ],
     ],
-    [vehicle],
+    [vehicle, distanceUnit],
   );
 
   const reminderForm = useForm<ReminderForm>({
@@ -306,7 +313,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
   const formatNextDue = (s: ScheduleWithPct) => {
     const parts: string[] = [];
     if (s.computed_next_due_miles != null)
-      parts.push(`${s.computed_next_due_miles.toLocaleString()} mi`);
+      parts.push(formatDistance(s.computed_next_due_miles, distanceUnit));
     if (s.computed_next_due_date != null) {
       const d = new Date(s.computed_next_due_date);
       parts.push(d.toLocaleDateString("en-US", { month: "short", year: "numeric" }));
@@ -434,7 +441,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                           <span>Next due: {formatNextDue(s)}</span>
                           {s.miles_remaining != null && (
                             <span className={`shrink-0 ${statusToneClass(s.pct_remaining, s.is_overdue)}`}>
-                              {Math.round(s.miles_remaining).toLocaleString()} mi remaining
+                              {formatDistance(s.miles_remaining, distanceUnit)} remaining
                             </span>
                           )}
                         </div>
@@ -505,7 +512,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                   { icon: "local_gas_station", label: "Fuel Level", value: "—%" },
                   { icon: "thermostat", label: "Engine Temp", value: "—°F" },
                   { icon: "battery_charging_full", label: "Battery", value: "— V" },
-                  { icon: "route", label: "Odometer", value: "— mi" },
+                  { icon: "route", label: "Odometer", value: `— ${formatDistanceUnit(distanceUnit)}` },
                   { icon: "warning_amber", label: "DTC Codes", value: "—" },
                 ].map(({ icon, label, value }) => (
                   <div key={label} className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">

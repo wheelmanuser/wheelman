@@ -115,21 +115,23 @@ export function NotificationBell() {
 
   return (
     <div ref={ref} className="relative">
-      <button
-        type="button"
+      <div
+        className="relative cursor-pointer"
         onClick={() => setOpen((v) => !v)}
-        className="rounded-sm border border-wm-border bg-wm-s1 p-2 text-wm-text2 hover:border-wm-accent/40 hover:text-wm-text"
+        role="button"
         aria-label="Notifications"
       >
-        <div className="relative">
-          <Icon name="notifications" size={20} />
-          {count > 0 && (
-            <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-wm-red text-[10px] font-bold leading-none text-white">
-              {count > 9 ? "9+" : count}
-            </span>
-          )}
-        </div>
-      </button>
+        <Icon
+          name="notifications"
+          size={28}
+          className="text-wm-text2 transition-colors hover:text-wm-text"
+        />
+        {count > 0 && (
+          <span className="absolute -right-1 -top-1 flex h-4 w-4 items-center justify-center rounded-full bg-wm-red text-[10px] font-bold leading-none text-white">
+            {count > 9 ? "9+" : count}
+          </span>
+        )}
+      </div>
 
       {open && (
         <div className="absolute right-0 top-10 z-50 w-80 border border-wm-border bg-wm-s1 shadow-xl">

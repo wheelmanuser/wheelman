@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Suspense } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
+import { formatDistance } from "@/lib/format-distance";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 export const dynamic = "force-dynamic";
@@ -122,7 +123,7 @@ async function GreetingHeader() {
   );
 }
 
-async function GarageSection() {
+async function GarageSection({ distanceUnit }: { distanceUnit: string }) {
   const supabase = createClient();
   const { data } = await supabase
     .from("vehicles")
@@ -160,7 +161,7 @@ async function GarageSection() {
                 {vehicleDisplayName(v)}
               </p>
               <p className="mt-1 text-xs text-wm-text2">
-                {v.odometer_miles != null ? `${Math.round(v.odometer_miles)} mi` : "Odometer —"}
+                {v.odometer_miles != null ? formatDistance(v.odometer_miles, distanceUnit) : "Odometer —"}
               </p>
             </Link>
           ))}
@@ -237,7 +238,7 @@ async function RecentActivitySection() {
   );
 }
 
-async function ServiceRemindersSection() {
+async function ServiceRemindersSection({ distanceUnit }: { distanceUnit: string }) {
   const supabase = createClient();
   const today = new Date();
 
@@ -363,7 +364,7 @@ async function ServiceRemindersSection() {
               </div>
               {r.miles_remaining != null && (
                 <p className={`ml-3 shrink-0 text-xs font-medium ${r.is_overdue ? "text-wm-red" : "text-wm-gold"}`}>
-                  {Math.round(r.miles_remaining).toLocaleString()} mi
+                  {formatDistance(r.miles_remaining, distanceUnit)}
                 </p>
               )}
             </Link>
@@ -426,6 +427,22 @@ async function QuickActionsSection() {
 }
 
 export default async function DashboardPage() {
+  const supabase = createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+
+  let distanceUnit = "miles";
+  if (user) {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: userSettings } = await (supabase as any)
+      .from("user_settings")
+      .select("distance_unit")
+      .eq("user_id", user.id)
+      .maybeSingle();
+    if (userSettings?.distance_unit) distanceUnit = userSettings.distance_unit;
+  }
+
   return (
     <main className="mx-auto w-full max-w-5xl space-y-6">
       <Suspense fallback={<SectionSkeleton />}>
@@ -433,7 +450,7 @@ export default async function DashboardPage() {
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
-        <GarageSection />
+        <GarageSection distanceUnit={distanceUnit} />
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
@@ -441,7 +458,7 @@ export default async function DashboardPage() {
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
-        <ServiceRemindersSection />
+        <ServiceRemindersSection distanceUnit={distanceUnit} />
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>

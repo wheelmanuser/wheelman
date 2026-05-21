@@ -3,6 +3,8 @@
 import Link from "next/link";
 import type { Vehicle } from "@/types/database";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
+import { formatDistance } from "@/lib/format-distance";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 
 type VehicleCardProps = {
   vehicle: Vehicle;
@@ -16,6 +18,8 @@ export function VehicleCard({
   serviceDueSoon,
 }: VehicleCardProps) {
   const title = vehicleDisplayName(vehicle);
+  const { settings } = useUserSettings();
+  const distanceUnit = settings.distance_unit;
 
   return (
     <Link
@@ -45,7 +49,7 @@ export function VehicleCard({
         <p className="text-xs text-wm-text3">
           <span className="uppercase tracking-widest">Odometer</span>{" "}
           <span className="text-wm-text2">
-            {vehicle.odometer_miles != null ? `${vehicle.odometer_miles.toLocaleString()} mi` : "—"}
+            {formatDistance(vehicle.odometer_miles, distanceUnit)}
           </span>
         </p>
         {serviceDueSoon && (

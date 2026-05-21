@@ -1,8 +1,10 @@
 "use client";
 
 import { useRef, useState } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
 import type { User } from "@supabase/supabase-js";
 
 type Settings = {
@@ -94,6 +96,8 @@ export function SettingsClient({
   initialSettings: Settings | null;
 }) {
   const supabase = createClient();
+  const router = useRouter();
+  const { updateSettings } = useUserSettings();
   const emailDefault = user?.email?.split("@")[0] ?? "";
 
   const [form, setForm] = useState<FormState>({
@@ -180,7 +184,15 @@ export function SettingsClient({
     if (error) {
       setSaveError(`Save failed: ${error.message} (code: ${error.code})`);
     } else {
+      updateSettings({
+        display_name: form.display_name || null,
+        avatar_url: form.avatar_url,
+        distance_unit: form.distance_unit,
+        timezone: form.timezone,
+        theme: form.theme,
+      });
       showSaved();
+      router.refresh();
     }
   };
 
@@ -302,7 +314,10 @@ export function SettingsClient({
                 <button
                   key={unit}
                   type="button"
-                  onClick={() => set("distance_unit", unit)}
+                  onClick={() => {
+                    set("distance_unit", unit);
+                    updateSettings({ distance_unit: unit });
+                  }}
                   className={`label-technical px-4 py-1.5 transition-colors ${
                     form.distance_unit === unit
                       ? "bg-wm-accent-dark text-wm-accent"

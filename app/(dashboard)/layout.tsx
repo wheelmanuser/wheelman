@@ -12,6 +12,7 @@ import { Icon } from "@/components/ui/Icon";
 const navItems = [
   { label: "Dashboard", href: "/dashboard", iconName: "speed" },
   { label: "My Garage", href: "/garage", iconName: "directions_car" },
+  { label: "Telematics", href: "/telematics", iconName: "sensors" },
 ];
 
 function getInitial(nameOrEmail: string | null | undefined): string {
@@ -34,6 +35,7 @@ export default function DashboardLayout({
     if (pathname === "/dashboard") return "Dashboard";
     if (pathname.startsWith("/garage")) return "My Garage";
     if (pathname.startsWith("/settings")) return "Settings";
+    if (pathname.startsWith("/telematics")) return "Telematics";
     return "Wheelman";
   }, [pathname]);
 

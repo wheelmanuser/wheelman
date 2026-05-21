@@ -3,8 +3,39 @@
 @tailwind utilities;
 
 @layer base {
-  html {
+  :root {
     color-scheme: dark;
+    --wm-bg: 19 19 18;
+    --wm-s1: 26 26 24;
+    --wm-s2: 34 34 32;
+    --wm-s3: 46 46 43;
+    --wm-border: 46 46 43;
+    --wm-text: 232 228 220;
+    --wm-text2: 156 152 136;
+    --wm-text3: 107 104 88;
+    --wm-accent: 165 208 188;
+    --wm-accent-dark: 12 55 41;
+    --wm-gold: 230 195 100;
+    --wm-red: 207 102 121;
+  }
+
+  [data-theme="light"] {
+    color-scheme: light;
+    --wm-bg: 245 243 239;
+    --wm-s1: 255 255 255;
+    --wm-s2: 237 234 228;
+    --wm-s3: 224 221 214;
+    --wm-border: 212 208 200;
+    --wm-text: 26 26 24;
+    --wm-text2: 74 72 64;
+    --wm-text3: 122 120 112;
+    --wm-accent: 12 55 41;
+    --wm-accent-dark: 12 55 41;
+    --wm-gold: 184 134 11;
+    --wm-red: 192 57 43;
+  }
+
+  html {
     font-size: 17px;
   }
 

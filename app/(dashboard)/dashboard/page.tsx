@@ -3,6 +3,7 @@ import { Suspense } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { createClient } from "@/lib/supabase/server";
+import { NotificationBell } from "@/components/layout/NotificationBell";
 export const dynamic = "force-dynamic";
 
 type VehicleRow = {
@@ -35,11 +36,20 @@ type DueReminder = {
   is_overdue: boolean;
 };
 
-function greetingForNow() {
-  const hour = new Date().getHours();
-  if (hour < 12) return "Good morning";
-  if (hour < 18) return "Good afternoon";
-  return "Good evening";
+function greetingForTimezone(timezone: string): string {
+  try {
+    const hourStr = new Date().toLocaleString("en-US", {
+      timeZone: timezone,
+      hour: "numeric",
+      hour12: false,
+    });
+    const hour = parseInt(hourStr, 10);
+    if (hour >= 5 && hour < 12) return "Good Morning";
+    if (hour >= 12 && hour < 17) return "Good Afternoon";
+    return "Good Evening";
+  } catch {
+    return "Good Morning";
+  }
 }
 
 
@@ -61,47 +71,53 @@ async function GreetingHeader() {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+
   let displayName = user?.email?.split("@")[0] ?? "Driver";
+  let timezone = "UTC";
+  let avatarUrl: string | null = null;
 
   if (user) {
-    const profileQuery = (supabase as unknown as {
-      from: (
-        table: "users",
-      ) => {
-        select: (columns: string) => {
-          eq: (column: string, value: string) => {
-            maybeSingle: () => Promise<{
-              data: { display_name?: string | null } | null;
-            }>;
-          };
-        };
-      };
-    })
-      .from("users")
-      .select("display_name")
-      .eq("id", user.id)
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { data: settings } = await (supabase as any)
+      .from("user_settings")
+      .select("display_name,timezone,avatar_url")
+      .eq("user_id", user.id)
       .maybeSingle();
-    const { data: profile } = await profileQuery;
-    displayName = profile?.display_name ?? displayName;
+    if (settings?.display_name) displayName = settings.display_name;
+    if (settings?.timezone) timezone = settings.timezone;
+    if (settings?.avatar_url) avatarUrl = settings.avatar_url;
   }
+
+  const greeting = greetingForTimezone(timezone);
+  const initial = displayName.charAt(0).toUpperCase();
 
   return (
     <header className="flex items-start justify-between gap-4">
-      <div>
-        <h2 className="font-headline text-4xl font-light tracking-wide text-wm-text">
-          {greetingForNow()}, {displayName}
-        </h2>
-        <p className="mt-2 text-sm text-wm-text3">
-          Start where you left off in your Wheelman workspace.
-        </p>
+      <div className="flex items-center gap-4">
+        <div className="shrink-0">
+          {avatarUrl ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              src={avatarUrl}
+              alt="Avatar"
+              className="h-12 w-12 rounded-full object-cover ring-2 ring-wm-accent"
+            />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-wm-accent-dark text-xl font-medium text-wm-accent ring-2 ring-wm-accent/30">
+              {initial}
+            </div>
+          )}
+        </div>
+        <div>
+          <h2 className="font-headline text-4xl font-light tracking-wide text-wm-text">
+            {greeting}, {displayName}
+          </h2>
+          <p className="mt-2 text-sm text-wm-text3">
+            Start where you left off in your Wheelman workspace.
+          </p>
+        </div>
       </div>
-      <button
-        type="button"
-        className="rounded-sm border border-wm-border bg-wm-s1 p-2 text-wm-text2"
-        aria-label="Notifications"
-      >
-        <Icon name="notifications" size={20} />
-      </button>
+      <NotificationBell />
     </header>
   );
 }

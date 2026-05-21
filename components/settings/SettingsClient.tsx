@@ -6,8 +6,7 @@ import { Icon } from "@/components/ui/Icon";
 import type { User } from "@supabase/supabase-js";
 
 type Settings = {
-  id?: string;
-  user_id?: string;
+  display_name?: string | null;
   driver_type?: string | null;
   distance_unit?: string;
   timezone?: string;
@@ -18,6 +17,20 @@ type Settings = {
   reminder_lead_time?: string;
   reminder_frequency?: string;
   avatar_url?: string | null;
+};
+
+type FormState = {
+  display_name: string;
+  driver_type: string | null;
+  distance_unit: string;
+  timezone: string;
+  theme: string;
+  email_reminders: boolean;
+  sms_reminders: boolean;
+  phone_number: string;
+  reminder_lead_time: string;
+  reminder_frequency: string;
+  avatar_url: string | null;
 };
 
 const DRIVER_TYPES = [
@@ -49,25 +62,24 @@ const COMMON_TIMEZONES = [
   "UTC",
 ];
 
-function getInitial(name: string | null | undefined): string {
-  if (!name) return "W";
-  return name.trim().charAt(0).toUpperCase();
+function getInitial(name: string): string {
+  return name.trim().charAt(0).toUpperCase() || "W";
 }
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: (v: boolean) => void }) {
+function Toggle({ value, onChange }: { value: boolean; onChange: (v: boolean) => void }) {
   return (
     <button
       type="button"
       role="switch"
-      aria-checked={checked}
-      onClick={() => onChange(!checked)}
-      className={`relative h-6 w-11 shrink-0 rounded-full border transition-colors ${
-        checked ? "border-wm-accent bg-wm-accent" : "border-wm-border bg-wm-s3"
+      aria-checked={value}
+      onClick={() => onChange(!value)}
+      className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 focus:outline-none ${
+        value ? "bg-wm-accent" : "bg-wm-s3"
       }`}
     >
       <span
-        className={`absolute top-0.5 h-5 w-5 rounded-full bg-wm-bg shadow transition-transform ${
-          checked ? "translate-x-5" : "translate-x-0.5"
+        className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow transform transition duration-200 ${
+          value ? "translate-x-5" : "translate-x-0"
         }`}
       />
     </button>
@@ -82,29 +94,70 @@ export function SettingsClient({
   initialSettings: Settings | null;
 }) {
   const supabase = createClient();
-  const [settings, setSettings] = useState<Settings>(initialSettings ?? {});
-  const [savedFlash, setSavedFlash] = useState(false);
-  const [avatarUploading, setAvatarUploading] = useState(false);
-  const flashTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const emailDefault = user?.email?.split("@")[0] ?? "";
 
-  const displayName =
-    (user?.user_metadata?.display_name as string | undefined) ??
-    (user?.email?.split("@")[0] ?? "Driver");
+  const [form, setForm] = useState<FormState>({
+    display_name: initialSettings?.display_name ?? emailDefault,
+    driver_type: initialSettings?.driver_type ?? null,
+    distance_unit: initialSettings?.distance_unit ?? "miles",
+    timezone: initialSettings?.timezone ?? "America/Toronto",
+    theme: initialSettings?.theme ?? "dark",
+    email_reminders: initialSettings?.email_reminders ?? true,
+    sms_reminders: initialSettings?.sms_reminders ?? false,
+    phone_number: initialSettings?.phone_number ?? "",
+    reminder_lead_time: initialSettings?.reminder_lead_time ?? "2_weeks",
+    reminder_frequency: initialSettings?.reminder_frequency ?? "once",
+    avatar_url: initialSettings?.avatar_url ?? null,
+  });
+
+  const [saving, setSaving] = useState(false);
+  const [saved, setSaved] = useState(false);
+  const [avatarUploading, setAvatarUploading] = useState(false);
+  const savedTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const displayNameForAvatar = form.display_name || emailDefault;
 
   const showSaved = () => {
-    if (flashTimer.current) clearTimeout(flashTimer.current);
-    setSavedFlash(true);
-    flashTimer.current = setTimeout(() => setSavedFlash(false), 2000);
+    if (savedTimer.current) clearTimeout(savedTimer.current);
+    setSaved(true);
+    savedTimer.current = setTimeout(() => setSaved(false), 3000);
   };
 
-  const save = async (patch: Partial<Settings>) => {
+  function set<K extends keyof FormState>(key: K, value: FormState[K]) {
+    setForm((f) => ({ ...f, [key]: value }));
+  }
+
+  const handleThemeChange = (theme: string) => {
+    document.documentElement.setAttribute("data-theme", theme);
+    try {
+      localStorage.setItem("wm-theme", theme);
+    } catch {}
+    set("theme", theme);
+  };
+
+  const handleSave = async () => {
     if (!user) return;
-    const next = { ...settings, ...patch };
-    setSettings(next);
-    const { error } = await supabase.from("user_settings").upsert(
-      { ...next, user_id: user.id, updated_at: new Date().toISOString() },
+    setSaving(true);
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    const { error } = await (supabase as any).from("user_settings").upsert(
+      {
+        user_id: user.id,
+        display_name: form.display_name || null,
+        driver_type: form.driver_type,
+        distance_unit: form.distance_unit,
+        timezone: form.timezone,
+        theme: form.theme,
+        email_reminders: form.email_reminders,
+        sms_reminders: form.sms_reminders,
+        phone_number: form.phone_number || null,
+        reminder_lead_time: form.reminder_lead_time,
+        reminder_frequency: form.reminder_frequency,
+        avatar_url: form.avatar_url,
+        updated_at: new Date().toISOString(),
+      },
       { onConflict: "user_id" },
     );
+    setSaving(false);
     if (!error) showSaved();
   };
 
@@ -119,23 +172,22 @@ export function SettingsClient({
       .upload(path, file, { upsert: true });
     if (!uploadError) {
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
-      await save({ avatar_url: data.publicUrl });
+      set("avatar_url", data.publicUrl);
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      await (supabase as any).from("user_settings").upsert(
+        { user_id: user.id, avatar_url: data.publicUrl, updated_at: new Date().toISOString() },
+        { onConflict: "user_id" },
+      );
+      showSaved();
     }
     setAvatarUploading(false);
   };
 
   return (
     <div className="mx-auto max-w-2xl space-y-10">
-      <div className="flex items-center justify-between">
-        <h2 className="font-headline text-2xl font-light tracking-wide text-wm-text">
-          Profile &amp; Settings
-        </h2>
-        <span
-          className={`label-technical text-wm-accent transition-opacity duration-300 ${savedFlash ? "opacity-100" : "opacity-0"}`}
-        >
-          Saved
-        </span>
-      </div>
+      <h2 className="font-headline text-2xl font-light tracking-wide text-wm-text">
+        Profile &amp; Settings
+      </h2>
 
       {/* PROFILE */}
       <section>
@@ -144,15 +196,11 @@ export function SettingsClient({
           {/* Avatar */}
           <div className="flex items-center gap-4">
             <div className="relative flex h-16 w-16 shrink-0 items-center justify-center overflow-hidden rounded-full border border-wm-accent/40 bg-wm-accent-dark text-2xl font-medium text-wm-accent">
-              {settings.avatar_url ? (
+              {form.avatar_url ? (
                 // eslint-disable-next-line @next/next/no-img-element
-                <img
-                  src={settings.avatar_url}
-                  alt="Avatar"
-                  className="h-full w-full object-cover"
-                />
+                <img src={form.avatar_url} alt="Avatar" className="h-full w-full object-cover" />
               ) : (
-                getInitial(displayName)
+                getInitial(displayNameForAvatar)
               )}
             </div>
             <div>
@@ -172,12 +220,19 @@ export function SettingsClient({
             </div>
           </div>
 
-          {/* Display name (read-only) */}
+          {/* Display name */}
           <div>
-            <span className="label-technical mb-1 block text-wm-text3">Display Name</span>
-            <p className="rounded-sm border border-wm-border bg-wm-s2/50 px-3 py-2 text-sm text-wm-text opacity-70">
-              {displayName}
-            </p>
+            <label className="label-technical mb-1 block text-wm-text3" htmlFor="display-name">
+              Display Name
+            </label>
+            <input
+              id="display-name"
+              type="text"
+              value={form.display_name}
+              onChange={(e) => set("display_name", e.target.value)}
+              placeholder={emailDefault}
+              className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+            />
           </div>
 
           {/* Driver type */}
@@ -185,12 +240,12 @@ export function SettingsClient({
             <span className="label-technical mb-3 block text-wm-text3">Driver Type</span>
             <div className="grid grid-cols-2 gap-2 sm:grid-cols-3">
               {DRIVER_TYPES.map((dt) => {
-                const active = settings.driver_type === dt.value;
+                const active = form.driver_type === dt.value;
                 return (
                   <button
                     key={dt.value}
                     type="button"
-                    onClick={() => save({ driver_type: dt.value })}
+                    onClick={() => set("driver_type", dt.value)}
                     className={`flex flex-col items-start gap-1 border p-3 text-left transition-colors ${
                       active
                         ? "border-wm-gold bg-wm-accent-dark text-wm-gold"
@@ -224,14 +279,14 @@ export function SettingsClient({
                 <button
                   key={unit}
                   type="button"
-                  onClick={() => save({ distance_unit: unit })}
+                  onClick={() => set("distance_unit", unit)}
                   className={`label-technical px-4 py-1.5 transition-colors ${
-                    (settings.distance_unit ?? "miles") === unit
+                    form.distance_unit === unit
                       ? "bg-wm-accent-dark text-wm-accent"
                       : "text-wm-text3 hover:text-wm-text2"
                   }`}
                 >
-                  {unit === "miles" ? "Miles" : "Kilometers"}
+                  {unit === "miles" ? "Miles" : "Km"}
                 </button>
               ))}
             </div>
@@ -239,10 +294,13 @@ export function SettingsClient({
 
           {/* Timezone */}
           <div>
-            <span className="label-technical mb-1 block text-wm-text3">Timezone</span>
+            <label className="label-technical mb-1 block text-wm-text3" htmlFor="timezone">
+              Timezone
+            </label>
             <select
-              value={settings.timezone ?? "America/Toronto"}
-              onChange={(e) => save({ timezone: e.target.value })}
+              id="timezone"
+              value={form.timezone}
+              onChange={(e) => set("timezone", e.target.value)}
               className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
             >
               {COMMON_TIMEZONES.map((tz) => (
@@ -257,21 +315,18 @@ export function SettingsClient({
           <div className="flex items-center justify-between">
             <span className="text-sm text-wm-text">Theme</span>
             <div className="flex border border-wm-border">
-              {(["dark", "light"] as const).map((theme) => (
+              {(["dark", "light"] as const).map((t) => (
                 <button
-                  key={theme}
+                  key={t}
                   type="button"
-                  onClick={() => {
-                    document.documentElement.setAttribute("data-theme", theme);
-                    void save({ theme });
-                  }}
+                  onClick={() => handleThemeChange(t)}
                   className={`label-technical px-4 py-1.5 transition-colors ${
-                    (settings.theme ?? "dark") === theme
+                    form.theme === t
                       ? "bg-wm-accent-dark text-wm-accent"
                       : "text-wm-text3 hover:text-wm-text2"
                   }`}
                 >
-                  {theme === "dark" ? "Dark" : "Light"}
+                  {t === "dark" ? "Dark" : "Light"}
                 </button>
               ))}
             </div>
@@ -289,10 +344,7 @@ export function SettingsClient({
               <p className="text-sm text-wm-text">Email Reminders</p>
               <p className="text-xs text-wm-text3">Service alerts sent to {user?.email}</p>
             </div>
-            <Toggle
-              checked={settings.email_reminders ?? true}
-              onChange={(v) => save({ email_reminders: v })}
-            />
+            <Toggle value={form.email_reminders} onChange={(v) => set("email_reminders", v)} />
           </div>
 
           {/* SMS reminders */}
@@ -302,20 +354,14 @@ export function SettingsClient({
                 <p className="text-sm text-wm-text">SMS Reminders</p>
                 <p className="text-xs text-wm-text3">Text alerts for upcoming service</p>
               </div>
-              <Toggle
-                checked={settings.sms_reminders ?? false}
-                onChange={(v) => save({ sms_reminders: v })}
-              />
+              <Toggle value={form.sms_reminders} onChange={(v) => set("sms_reminders", v)} />
             </div>
-            {settings.sms_reminders && (
+            {form.sms_reminders && (
               <input
                 type="tel"
                 placeholder="e.g. +1 416 555 0100"
-                value={settings.phone_number ?? ""}
-                onChange={(e) =>
-                  setSettings((s) => ({ ...s, phone_number: e.target.value }))
-                }
-                onBlur={(e) => save({ phone_number: e.target.value || null })}
+                value={form.phone_number}
+                onChange={(e) => set("phone_number", e.target.value)}
                 className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
               />
             )}
@@ -335,9 +381,9 @@ export function SettingsClient({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => save({ reminder_lead_time: opt.value })}
-                  className={`flex-1 py-1.5 label-technical transition-colors ${
-                    (settings.reminder_lead_time ?? "2_weeks") === opt.value
+                  onClick={() => set("reminder_lead_time", opt.value)}
+                  className={`flex-1 label-technical py-1.5 transition-colors ${
+                    form.reminder_lead_time === opt.value
                       ? "bg-wm-accent-dark text-wm-accent"
                       : "text-wm-text3 hover:text-wm-text2"
                   }`}
@@ -362,9 +408,9 @@ export function SettingsClient({
                 <button
                   key={opt.value}
                   type="button"
-                  onClick={() => save({ reminder_frequency: opt.value })}
-                  className={`flex-1 py-1.5 label-technical transition-colors ${
-                    (settings.reminder_frequency ?? "once") === opt.value
+                  onClick={() => set("reminder_frequency", opt.value)}
+                  className={`flex-1 label-technical py-1.5 transition-colors ${
+                    form.reminder_frequency === opt.value
                       ? "bg-wm-accent-dark text-wm-accent"
                       : "text-wm-text3 hover:text-wm-text2"
                   }`}
@@ -376,6 +422,23 @@ export function SettingsClient({
           </div>
         </div>
       </section>
+
+      {/* Save */}
+      <div className="flex items-center justify-end gap-4 pb-10">
+        <span
+          className={`label-technical text-wm-accent transition-opacity duration-300 ${saved ? "opacity-100" : "opacity-0"}`}
+        >
+          Saved ✓
+        </span>
+        <button
+          type="button"
+          onClick={handleSave}
+          disabled={saving || !user}
+          className="label-technical border border-wm-accent bg-wm-accent-dark px-6 py-2.5 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
+        >
+          {saving ? "Saving..." : "Save Changes"}
+        </button>
+      </div>
     </div>
   );
 }

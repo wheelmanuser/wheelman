@@ -41,6 +41,11 @@ export default function RootLayout({
           href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200&display=block"
           rel="stylesheet"
         />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{var t=localStorage.getItem('wm-theme')||'dark';document.documentElement.setAttribute('data-theme',t);}catch(e){}`,
+          }}
+        />
       </head>
       <body
         className={`${archivNarrow.variable} ${hankenGrotesk.variable} ${geistMono.variable} min-h-screen bg-wm-bg text-wm-text antialiased`}

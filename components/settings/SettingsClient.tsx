@@ -136,12 +136,18 @@ export function SettingsClient({
   };
 
   const handleSave = async () => {
-    if (!user) return;
     setSaving(true);
+    const { data: { user: liveUser } } = await supabase.auth.getUser();
+    if (!liveUser) {
+      console.error("Settings save error: no authenticated user");
+      setSaving(false);
+      return;
+    }
+    console.log("[Settings] Saving form state:", form);
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { error } = await (supabase as any).from("user_settings").upsert(
       {
-        user_id: user.id,
+        user_id: liveUser.id,
         display_name: form.display_name || null,
         driver_type: form.driver_type,
         distance_unit: form.distance_unit,
@@ -158,7 +164,11 @@ export function SettingsClient({
       { onConflict: "user_id" },
     );
     setSaving(false);
-    if (!error) showSaved();
+    if (error) {
+      console.error("Settings save error:", error);
+    } else {
+      showSaved();
+    }
   };
 
   const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -424,21 +434,24 @@ export function SettingsClient({
       </section>
 
       {/* Save */}
-      <div className="flex items-center justify-end gap-4 pb-10">
-        <span
-          className={`label-technical text-wm-accent transition-opacity duration-300 ${saved ? "opacity-100" : "opacity-0"}`}
-        >
-          Saved ✓
-        </span>
+      <div className="flex items-center justify-end pb-10">
         <button
           type="button"
           onClick={handleSave}
-          disabled={saving || !user}
+          disabled={saving}
           className="label-technical border border-wm-accent bg-wm-accent-dark px-6 py-2.5 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
         >
           {saving ? "Saving..." : "Save Changes"}
         </button>
       </div>
+
+      {/* Toast */}
+      {saved && (
+        <div className="animate-fade-in fixed bottom-24 left-1/2 z-50 flex -translate-x-1/2 items-center gap-2 border border-wm-accent bg-wm-accent-dark px-6 py-3 shadow-xl">
+          <Icon name="task_alt" className="text-wm-accent" size={18} />
+          <span className="label-technical text-wm-accent tracking-widest">Changes Saved</span>
+        </div>
+      )}
     </div>
   );
 }

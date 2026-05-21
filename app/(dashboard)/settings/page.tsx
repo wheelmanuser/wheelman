@@ -9,8 +9,9 @@ export default async function SettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const { data: settings } = user
-    ? await supabase.from("user_settings").select("*").eq("user_id", user.id).single()
+    ? await (supabase as any).from("user_settings").select("*").eq("user_id", user.id).maybeSingle()
     : { data: null };
 
   return <SettingsClient user={user} initialSettings={settings} />;

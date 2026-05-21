@@ -33,6 +33,7 @@ export default function DashboardLayout({
   const title = useMemo(() => {
     if (pathname === "/dashboard") return "Dashboard";
     if (pathname.startsWith("/garage")) return "My Garage";
+    if (pathname.startsWith("/settings")) return "Settings";
     return "Wheelman";
   }, [pathname]);
 
@@ -109,12 +110,16 @@ export default function DashboardLayout({
         </nav>
 
         <div className="mt-auto border-t border-wm-border pt-4">
-          <div className="flex items-center gap-3 px-1">
+          <Link
+            href="/settings"
+            onClick={() => setMenuOpen(false)}
+            className="flex items-center gap-3 px-1 transition-opacity hover:opacity-80"
+          >
             <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-sm border border-wm-accent/40 bg-wm-accent-dark text-xs font-medium text-wm-accent">
               {getInitial(displayName)}
             </div>
             <p className="truncate text-xs tracking-wide text-wm-text2">{displayName}</p>
-          </div>
+          </Link>
           <button
             type="button"
             onClick={handleSignOut}

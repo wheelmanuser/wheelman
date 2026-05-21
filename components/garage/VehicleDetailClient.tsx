@@ -16,7 +16,7 @@ import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import type { Vehicle } from "@/types/database";
 
-type Tab = "overview" | "logbook" | "costs";
+type Tab = "overview" | "logbook" | "costs" | "telematics";
 
 type ReminderForm = {
   service_name: string;
@@ -350,8 +350,8 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
         </div>
       </section>
 
-      <div className="mt-8 flex gap-8 border-b border-wm-border">
-        {(["overview", "logbook", "costs"] as const).map((id) => (
+      <div className="mt-8 flex gap-8 border-b border-wm-border overflow-x-auto">
+        {(["overview", "logbook", "costs", "telematics"] as const).map((id) => (
           <button
             key={id}
             type="button"
@@ -407,7 +407,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                     return (
                       <li
                         key={s.id}
-                        className={`rounded-none border border-wm-border bg-wm-s1 px-4 py-3 text-sm ${
+                        className={`rounded-none border border-wm-border bg-wm-s1 px-4 py-3 ${
                           s.is_overdue
                             ? "border-l-4 border-l-wm-red"
                             : s.pct_remaining != null && s.pct_remaining <= 30
@@ -415,68 +415,63 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                             : "border-l-4 border-l-wm-accent-dark"
                         }`}
                       >
-                        <div className="flex items-start justify-between gap-2">
-                          <div className="min-w-0 flex-1">
-                            <div className="flex flex-wrap items-center gap-2">
-                              <span className="font-headline text-base font-semibold tracking-wide text-wm-text">{s.service_name}</span>
-                              <span className="label-technical rounded-sm bg-wm-s2 px-2 py-0.5 text-wm-text3">
-                                {raw.is_recurring !== false ? "Recurring" : "One-time"}
-                              </span>
-                              {s.is_overdue && (
-                                <span className="label-technical rounded-sm bg-wm-red/20 px-2 py-0.5 text-wm-red">
-                                  Overdue
-                                </span>
-                              )}
-                            </div>
-                            <p className="mt-1 text-xs text-wm-text2">
-                              Next due: {formatNextDue(s)}
-                            </p>
-                            {s.miles_remaining != null && (
-                              <p className="mt-0.5 text-xs text-wm-text2">
-                                Miles remaining:{" "}
-                                <span className={statusToneClass(s.pct_remaining, s.is_overdue)}>
-                                  {Math.round(s.miles_remaining).toLocaleString()}
-                                </span>
-                                {s.pct_remaining != null && !Number.isNaN(s.pct_remaining) && (
-                                  <span className={`label-technical ml-2 inline-block rounded-sm px-2 py-0.5 ${
-                                    s.is_overdue
-                                      ? "bg-wm-red/20 text-wm-red"
-                                      : s.pct_remaining <= 30
-                                      ? "bg-wm-gold/20 text-wm-gold"
-                                      : "bg-wm-accent/20 text-wm-accent"
-                                  }`}>
-                                    {s.is_overdue ? "Overdue" : s.pct_remaining <= 30 ? "Due soon" : "Good"}
-                                  </span>
-                                )}
-                              </p>
-                            )}
+                        {/* Row 1: name + single status pill */}
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="font-headline text-base font-semibold tracking-wide text-wm-text truncate">{s.service_name}</span>
+                          <span className={`label-technical shrink-0 rounded-sm px-2 py-0.5 ${
+                            s.is_overdue
+                              ? "bg-wm-red/20 text-wm-red"
+                              : s.pct_remaining != null && s.pct_remaining <= 30
+                              ? "bg-wm-gold/20 text-wm-gold"
+                              : "bg-wm-accent/20 text-wm-accent"
+                          }`}>
+                            {s.is_overdue ? "Overdue" : s.pct_remaining != null && s.pct_remaining <= 30 ? "Due Soon" : "Good"}
+                          </span>
+                        </div>
+
+                        {/* Row 2: next due (left) + miles remaining (right) */}
+                        <div className="mt-1 flex items-center justify-between gap-2 text-sm text-wm-text2">
+                          <span>Next due: {formatNextDue(s)}</span>
+                          {s.miles_remaining != null && (
+                            <span className={`shrink-0 ${statusToneClass(s.pct_remaining, s.is_overdue)}`}>
+                              {Math.round(s.miles_remaining).toLocaleString()} mi remaining
+                            </span>
+                          )}
+                        </div>
+
+                        {/* Row 3: one-time pill */}
+                        {raw.is_recurring === false && (
+                          <div className="mt-1.5">
+                            <span className="label-technical rounded-sm bg-wm-s2 px-2 py-0.5 text-wm-text3">One-time</span>
                           </div>
-                          <div className="flex shrink-0 items-center gap-1">
-                            <button
-                              type="button"
-                              onClick={() => openDoneModal(s)}
-                              className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-accent hover:opacity-70"
-                            >
-                              <Icon name="task_alt" size={14} />
-                              Done
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => openEditDrawer(s)}
-                              className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-text3 hover:text-wm-text2"
-                            >
-                              <Icon name="edit" size={14} />
-                              Edit
-                            </button>
-                            <button
-                              type="button"
-                              onClick={() => onDeleteReminder(s.id)}
-                              className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-red hover:opacity-70"
-                            >
-                              <Icon name="delete_outline" size={14} />
-                              Delete
-                            </button>
-                          </div>
+                        )}
+
+                        {/* Action buttons */}
+                        <div className="mt-3 flex justify-end gap-1">
+                          <button
+                            type="button"
+                            onClick={() => openDoneModal(s)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-accent hover:opacity-70"
+                          >
+                            <Icon name="task_alt" size={14} />
+                            Done
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => openEditDrawer(s)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-text3 hover:text-wm-text2"
+                          >
+                            <Icon name="edit" size={14} />
+                            Edit
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => onDeleteReminder(s.id)}
+                            className="flex items-center gap-1 px-2 py-1 text-xs uppercase tracking-wider text-wm-red hover:opacity-70"
+                          >
+                            <Icon name="delete_outline" size={14} />
+                            Delete
+                          </button>
                         </div>
                       </li>
                     );
@@ -485,15 +480,6 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
               )}
             </section>
 
-            {!hasDevice && (
-              <div className="rounded-xl border border-dashed border-wm-border bg-wm-s2/50 p-6 opacity-70">
-                <div className="flex items-center justify-between">
-                  <p className="text-sm text-wm-text2">Connect WhereQube</p>
-                  <span className="rounded-full bg-wm-s3 px-2 py-0.5 text-xs text-wm-text3">Coming in v2</span>
-                </div>
-                <p className="mt-2 text-xs text-wm-text3">Telematics integration will arrive in a future release.</p>
-              </div>
-            )}
           </div>
         )}
 
@@ -503,6 +489,40 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
 
         {tab === "costs" && (
           <VehicleCostsClient vehicleId={vehicle.id} odometerMiles={vehicle.odometer_miles} />
+        )}
+
+        {tab === "telematics" && (
+          <div className="space-y-6">
+            <div className="carbon-texture border border-l-4 border-wm-border border-l-wm-accent p-8 text-center">
+              <Icon name="sensors" className="mb-4 text-wm-accent" size={48} />
+              <h3 className="font-headline text-xl uppercase tracking-wide text-wm-text">Live Telematics</h3>
+              <p className="mx-auto mt-2 max-w-sm text-sm text-wm-text2">
+                Real-time OBD-II data, GPS tracking, and vehicle health diagnostics. Connect WhereQube device to unlock this feature.
+              </p>
+              <div className="mt-8 grid grid-cols-2 gap-4 text-left">
+                {[
+                  { icon: "speed", label: "Live Speed", value: "— mph" },
+                  { icon: "local_gas_station", label: "Fuel Level", value: "—%" },
+                  { icon: "thermostat", label: "Engine Temp", value: "—°F" },
+                  { icon: "battery_charging_full", label: "Battery", value: "— V" },
+                  { icon: "route", label: "Odometer", value: "— mi" },
+                  { icon: "warning_amber", label: "DTC Codes", value: "—" },
+                ].map(({ icon, label, value }) => (
+                  <div key={label} className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
+                    <div className="mb-1 flex items-center gap-2">
+                      <Icon name={icon} className="text-wm-accent" size={16} />
+                      <span className="label-technical text-wm-text3">{label}</span>
+                    </div>
+                    <span className="font-headline text-lg text-wm-text2">{value}</span>
+                  </div>
+                ))}
+              </div>
+              <div className="mt-8 border border-dashed border-wm-border p-4">
+                <span className="label-technical text-wm-accent">WhereQube Integration — Coming in v2</span>
+                <p className="mt-2 text-xs text-wm-text3">Plug-and-play OBD-II adapter with real-time cloud sync.</p>
+              </div>
+            </div>
+          </div>
         )}
       </div>
 

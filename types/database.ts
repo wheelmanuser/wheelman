@@ -68,6 +68,7 @@ export interface LogbookEntry {
   shop_name: string | null;
   performed_by: string | null;
   is_public: boolean;
+  is_recurring: boolean | null;
   created_at: string;
   updated_at: string;
 }
@@ -122,6 +123,7 @@ export interface ServiceSchedule {
   next_due_date: string | null;
   notify_pct_remaining: number;
   is_active: boolean;
+  is_recurring: boolean | null;
   source: string;
   created_at: string;
   updated_at: string;

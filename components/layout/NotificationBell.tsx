@@ -51,7 +51,7 @@ export function NotificationBell() {
         const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
         const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
         const intervalMonths = s.interval_months != null ? Number(s.interval_months) : null;
-        const isRecurring = raw.is_recurring !== false;
+        const isRecurring = s.is_recurring !== false;
 
         let pct_remaining: number | null = null;
         let is_overdue = false;

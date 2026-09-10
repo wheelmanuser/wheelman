@@ -142,7 +142,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
     setEditingSchedule(s);
     reminderForm.reset({
       service_name: s.service_name,
-      is_recurring: raw.is_recurring !== false,
+      is_recurring: s.is_recurring !== false,
       interval_miles: s.interval_miles != null ? String(s.interval_miles) : "",
       interval_months: s.interval_months != null ? String(s.interval_months) : "",
       last_performed_miles: s.last_performed_miles != null ? String(s.last_performed_miles) : "",
@@ -296,6 +296,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
       notes: values.notes.trim() || null,
       entry_mode: "form" as const,
       is_public: false,
+      is_recurring: doneSchedule.is_recurring,
     });
 
     if (logError) {
@@ -304,12 +305,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
       return;
     }
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const rawDone = doneSchedule as any;
     const { error: schedError } = await supabase
       .from("service_schedules")
       .update(
-        rawDone.is_recurring !== false
+        doneSchedule.is_recurring !== false
           ? { last_performed_miles: completionMiles, last_performed_date: values.completion_date, is_active: true }
           : { is_active: false },
       )
@@ -540,8 +539,6 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
               ) : (
                 <ul className="space-y-2">
                   {schedules.map((s) => {
-                    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                    const raw = s as any;
                     return (
                       <li
                         key={s.id}
@@ -578,7 +575,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                         </div>
 
                         {/* Row 3: one-time pill */}
-                        {raw.is_recurring === false && (
+                        {s.is_recurring === false && (
                           <div className="mt-1.5">
                             <span className="label-technical rounded-sm bg-wm-s2 px-2 py-0.5 text-wm-text3">One-time</span>
                           </div>

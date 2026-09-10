@@ -96,12 +96,10 @@ export function VehicleLogbookClient({
         q.length === 0 ||
         e.title.toLowerCase().includes(q) ||
         (e.notes ?? "").toLowerCase().includes(q);
-      // `is_recurring` doesn't exist on logbook_entries yet — see note in VehicleLogbookClient.
-      const isRecurring = (e as unknown as { is_recurring?: boolean | null }).is_recurring ?? null;
       const byRecurrence =
         recurrenceFilter === "all" ||
-        (recurrenceFilter === "recurring" && isRecurring === true) ||
-        (recurrenceFilter === "one_time" && (isRecurring === false || isRecurring === null));
+        (recurrenceFilter === "recurring" && e.is_recurring === true) ||
+        (recurrenceFilter === "one_time" && (e.is_recurring === false || e.is_recurring === null));
       return byFilter && bySearch && byRecurrence;
     });
   }, [entries, filter, search, recurrenceFilter]);

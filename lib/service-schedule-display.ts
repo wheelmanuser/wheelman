@@ -18,7 +18,7 @@ export function enrichSchedules(
   return schedules.map((s) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const raw = s as any;
-    const isRecurring = raw.is_recurring !== false;
+    const isRecurring = s.is_recurring !== false;
     const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
     const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
     const intervalMonths = s.interval_months != null ? Number(s.interval_months) : null;

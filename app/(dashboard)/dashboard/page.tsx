@@ -6,7 +6,7 @@ import { formatDistance } from "@/lib/format-distance";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { LogbookPickerModal } from "@/components/dashboard/LogbookPickerModal";
-import type { Vehicle } from "@/types/database";
+import type { ServiceSchedule, Vehicle } from "@/types/database";
 export const dynamic = "force-dynamic";
 
 type VehiclePickerRow = Pick<Vehicle, "id" | "year" | "make" | "model" | "nickname">;
@@ -264,8 +264,7 @@ async function ServiceRemindersSection({ distanceUnit }: { distanceUnit: string 
       .select("*")
       .in("vehicle_id", vehicleIds)
       .eq("is_active", true);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const schedules = (scheduleData ?? []) as any[];
+    const schedules = (scheduleData ?? []) as ServiceSchedule[];
 
     for (const s of schedules) {
       const vehicle = vehicleMap.get(s.vehicle_id);

@@ -16,8 +16,6 @@ export function enrichSchedules(
   const today = new Date();
 
   return schedules.map((s) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = s as any;
     const isRecurring = s.is_recurring !== false;
     const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
     const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
@@ -55,17 +53,17 @@ export function enrichSchedules(
         pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
       }
     } else {
-      if (raw.due_miles != null) {
-        computed_next_due_miles = Number(raw.due_miles);
+      if (s.due_miles != null) {
+        computed_next_due_miles = Number(s.due_miles);
         if (odometer != null) {
           miles_remaining = computed_next_due_miles - odometer;
           is_overdue = miles_remaining < 0;
           pct_remaining = is_overdue ? 0 : Math.min(100, (miles_remaining / 500) * 100);
         }
       }
-      if (raw.due_date != null) {
-        computed_next_due_date = raw.due_date;
-        const dueDate = new Date(raw.due_date);
+      if (s.due_date != null) {
+        computed_next_due_date = s.due_date;
+        const dueDate = new Date(s.due_date);
         is_overdue = dueDate < today;
         if (miles_remaining == null) {
           const daysUntil = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);

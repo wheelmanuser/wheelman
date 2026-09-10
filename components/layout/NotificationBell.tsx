@@ -45,8 +45,6 @@ export function NotificationBell() {
         const vehicle = vehicleMap.get(s.vehicle_id);
         if (!vehicle) continue;
 
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        const raw = s as any;
         const odometer = vehicle.odometer_miles != null ? Number(vehicle.odometer_miles) : null;
         const lastMiles = s.last_performed_miles != null ? Number(s.last_performed_miles) : null;
         const intervalMiles = s.interval_miles != null ? Number(s.interval_miles) : null;
@@ -69,12 +67,12 @@ export function NotificationBell() {
             pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);
           }
         } else {
-          if (raw.due_miles != null && odometer != null) {
-            const milesRemaining = Number(raw.due_miles) - odometer;
+          if (s.due_miles != null && odometer != null) {
+            const milesRemaining = Number(s.due_miles) - odometer;
             is_overdue = milesRemaining < 0;
             pct_remaining = is_overdue ? 0 : Math.min(100, (milesRemaining / 500) * 100);
-          } else if (raw.due_date != null) {
-            const dueDate = new Date(raw.due_date);
+          } else if (s.due_date != null) {
+            const dueDate = new Date(s.due_date);
             is_overdue = dueDate < today;
             const daysUntil = (dueDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24);
             pct_remaining = is_overdue ? 0 : Math.min(100, (daysUntil / 30) * 100);

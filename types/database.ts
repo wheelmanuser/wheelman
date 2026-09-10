@@ -124,6 +124,8 @@ export interface ServiceSchedule {
   notify_pct_remaining: number;
   is_active: boolean;
   is_recurring: boolean | null;
+  due_date: string | null;
+  due_miles: number | null;
   source: string;
   created_at: string;
   updated_at: string;

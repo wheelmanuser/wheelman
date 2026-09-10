@@ -137,8 +137,6 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
   };
 
   const openEditDrawer = (s: ScheduleWithPct) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const raw = s as any;
     setEditingSchedule(s);
     reminderForm.reset({
       service_name: s.service_name,
@@ -147,8 +145,8 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
       interval_months: s.interval_months != null ? String(s.interval_months) : "",
       last_performed_miles: s.last_performed_miles != null ? String(s.last_performed_miles) : "",
       last_performed_date: s.last_performed_date ?? "",
-      due_date: raw.due_date ?? "",
-      due_miles: raw.due_miles != null ? String(raw.due_miles) : "",
+      due_date: s.due_date ?? "",
+      due_miles: s.due_miles != null ? String(s.due_miles) : "",
     });
     setFormError(null);
     setDrawerOpen(true);

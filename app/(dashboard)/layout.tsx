@@ -1,6 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { DashboardLayoutClient } from "@/components/layout/DashboardLayoutClient";
-import type { UserSettings } from "@/contexts/UserSettingsContext";
+import type { UserSettings } from "@/types/database";
 
 export default async function DashboardLayout({
   children,
@@ -13,28 +13,37 @@ export default async function DashboardLayout({
   } = await supabase.auth.getUser();
 
   const defaultSettings: UserSettings = {
-    display_name: null,
-    avatar_url: null,
+    id: "",
+    user_id: user?.id ?? "",
+    driver_type: null,
     distance_unit: "miles",
     timezone: "America/Toronto",
     theme: "dark",
+    email_reminders: null,
+    sms_reminders: null,
+    phone_number: null,
+    reminder_lead_time: null,
+    reminder_frequency: null,
+    avatar_url: null,
+    display_name: null,
+    created_at: null,
+    updated_at: null,
   };
 
   let initialSettings = defaultSettings;
   if (user) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data } = await (supabase as any)
+    const { data } = await supabase
       .from("user_settings")
-      .select("display_name,avatar_url,distance_unit,timezone,theme")
+      .select("*")
       .eq("user_id", user.id)
       .maybeSingle();
-    if (data) {
+    const row = data as UserSettings | null;
+    if (row) {
       initialSettings = {
-        display_name: data.display_name ?? null,
-        avatar_url: data.avatar_url ?? null,
-        distance_unit: data.distance_unit ?? "miles",
-        timezone: data.timezone ?? "America/Toronto",
-        theme: data.theme ?? "dark",
+        ...row,
+        distance_unit: row.distance_unit ?? "miles",
+        timezone: row.timezone ?? "America/Toronto",
+        theme: row.theme ?? "dark",
       };
     }
   }

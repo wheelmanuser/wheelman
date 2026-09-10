@@ -6,20 +6,7 @@ import { createClient } from "@/lib/supabase/client";
 import { Icon } from "@/components/ui/Icon";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import type { User } from "@supabase/supabase-js";
-
-type Settings = {
-  display_name?: string | null;
-  driver_type?: string | null;
-  distance_unit?: string;
-  timezone?: string;
-  theme?: string;
-  email_reminders?: boolean;
-  sms_reminders?: boolean;
-  phone_number?: string | null;
-  reminder_lead_time?: string;
-  reminder_frequency?: string;
-  avatar_url?: string | null;
-};
+import type { UserSettings } from "@/types/database";
 
 type FormState = {
   display_name: string;
@@ -93,7 +80,7 @@ export function SettingsClient({
   initialSettings,
 }: {
   user: User | null;
-  initialSettings: Settings | null;
+  initialSettings: UserSettings | null;
 }) {
   const supabase = createClient();
   const router = useRouter();
@@ -173,8 +160,7 @@ export function SettingsClient({
     console.log("[Settings] user_id:", liveUserId);
     console.log("[Settings] payload:", payload);
 
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { error } = await (supabase as any)
+    const { error } = await supabase
       .from("user_settings")
       .upsert(payload, { onConflict: "user_id" });
 
@@ -208,8 +194,7 @@ export function SettingsClient({
     if (!uploadError) {
       const { data } = supabase.storage.from("avatars").getPublicUrl(path);
       set("avatar_url", data.publicUrl);
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      await (supabase as any).from("user_settings").upsert(
+      await supabase.from("user_settings").upsert(
         { user_id: user.id, avatar_url: data.publicUrl, updated_at: new Date().toISOString() },
         { onConflict: "user_id" },
       );

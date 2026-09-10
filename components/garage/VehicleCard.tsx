@@ -19,7 +19,7 @@ export function VehicleCard({
 }: VehicleCardProps) {
   const title = vehicleDisplayName(vehicle);
   const { settings } = useUserSettings();
-  const distanceUnit = settings.distance_unit;
+  const distanceUnit = settings.distance_unit ?? "miles";
 
   return (
     <Link

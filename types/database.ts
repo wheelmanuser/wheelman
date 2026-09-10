@@ -143,6 +143,24 @@ export type VehicleDevice = {
   updated_at: string;
 };
 
+export type UserSettings = {
+  id: string;
+  user_id: string;
+  driver_type: string | null;
+  distance_unit: string | null;
+  timezone: string | null;
+  theme: string | null;
+  email_reminders: boolean | null;
+  sms_reminders: boolean | null;
+  phone_number: string | null;
+  reminder_lead_time: string | null;
+  reminder_frequency: string | null;
+  avatar_url: string | null;
+  display_name: string | null;
+  created_at: string | null;
+  updated_at: string | null;
+};
+
 export type VehicleTelemetry = {
   id: string;
   vehicle_id: string;
@@ -230,6 +248,16 @@ export type Database = {
           updated_at?: string;
         };
         Update: Partial<Omit<ServiceSchedule, "id" | "vehicle_id" | "user_id">>;
+        Relationships: [];
+      };
+      user_settings: {
+        Row: UserSettings;
+        Insert: Omit<UserSettings, "id" | "created_at" | "updated_at"> & {
+          id?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: Partial<Omit<UserSettings, "id" | "user_id">>;
         Relationships: [];
       };
     };

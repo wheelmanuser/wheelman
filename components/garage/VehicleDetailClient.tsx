@@ -56,7 +56,7 @@ type Props = {
 export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedules }: Props) {
   const router = useRouter();
   const { settings } = useUserSettings();
-  const distanceUnit = settings.distance_unit;
+  const distanceUnit = settings.distance_unit ?? "miles";
   const [tab, setTab] = useState<Tab>("overview");
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleWithPct | null>(null);

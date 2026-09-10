@@ -6,7 +6,7 @@ import { formatDistance } from "@/lib/format-distance";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { LogbookPickerModal } from "@/components/dashboard/LogbookPickerModal";
-import type { ServiceSchedule, Vehicle } from "@/types/database";
+import type { ServiceSchedule, UserSettings, Vehicle } from "@/types/database";
 export const dynamic = "force-dynamic";
 
 type VehiclePickerRow = Pick<Vehicle, "id" | "year" | "make" | "model" | "nickname">;
@@ -82,12 +82,12 @@ async function GreetingHeader() {
   let avatarUrl: string | null = null;
 
   if (user) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: settings } = await (supabase as any)
+    const { data } = await supabase
       .from("user_settings")
       .select("display_name,timezone,avatar_url")
       .eq("user_id", user.id)
       .maybeSingle();
+    const settings = data as Pick<UserSettings, "display_name" | "timezone" | "avatar_url"> | null;
     if (settings?.display_name) displayName = settings.display_name;
     if (settings?.timezone) timezone = settings.timezone;
     if (settings?.avatar_url) avatarUrl = settings.avatar_url;
@@ -440,12 +440,12 @@ export default async function DashboardPage() {
 
   let distanceUnit = "miles";
   if (user) {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    const { data: userSettings } = await (supabase as any)
+    const { data } = await supabase
       .from("user_settings")
       .select("distance_unit")
       .eq("user_id", user.id)
       .maybeSingle();
+    const userSettings = data as Pick<UserSettings, "distance_unit"> | null;
     if (userSettings?.distance_unit) distanceUnit = userSettings.distance_unit;
   }
 

@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import { SettingsClient } from "@/components/settings/SettingsClient";
+import type { UserSettings } from "@/types/database";
 
 export const dynamic = "force-dynamic";
 
@@ -9,11 +10,9 @@ export default async function SettingsPage() {
     data: { user },
   } = await supabase.auth.getUser();
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const db = supabase as any;
   const { data: settings } = user
-    ? await db.from("user_settings").select("*").eq("user_id", user.id).maybeSingle()
+    ? await supabase.from("user_settings").select("*").eq("user_id", user.id).maybeSingle()
     : { data: null };
 
-  return <SettingsClient user={user} initialSettings={settings} />;
+  return <SettingsClient user={user} initialSettings={settings as UserSettings | null} />;
 }

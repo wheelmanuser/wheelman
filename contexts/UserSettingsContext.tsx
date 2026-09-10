@@ -1,19 +1,32 @@
 "use client";
-import { createContext, useContext, useState, useEffect } from "react";
+import { createContext, useContext, useState } from "react";
+import type { UserSettings } from "@/types/database";
 
-export type UserSettings = {
-  display_name: string | null;
-  avatar_url: string | null;
-  distance_unit: string;
-  timezone: string;
-  theme: string;
+export type { UserSettings };
+
+const DEFAULT_SETTINGS: UserSettings = {
+  id: "",
+  user_id: "",
+  driver_type: null,
+  distance_unit: "miles",
+  timezone: "America/Toronto",
+  theme: "dark",
+  email_reminders: null,
+  sms_reminders: null,
+  phone_number: null,
+  reminder_lead_time: null,
+  reminder_frequency: null,
+  avatar_url: null,
+  display_name: null,
+  created_at: null,
+  updated_at: null,
 };
 
 const UserSettingsContext = createContext<{
   settings: UserSettings;
   updateSettings: (s: Partial<UserSettings>) => void;
 }>({
-  settings: { display_name: null, avatar_url: null, distance_unit: "miles", timezone: "America/Toronto", theme: "dark" },
+  settings: DEFAULT_SETTINGS,
   updateSettings: () => {},
 });
 

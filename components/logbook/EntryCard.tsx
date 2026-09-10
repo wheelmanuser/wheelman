@@ -36,7 +36,7 @@ export function EntryCard({ entry, onEdit }: Props) {
   const [expanded, setExpanded] = useState(false);
   const meta = categoryMeta(entry.category);
   const { settings } = useUserSettings();
-  const distanceUnit = settings.distance_unit;
+  const distanceUnit = settings.distance_unit ?? "miles";
 
   return (
     <article className={`rounded-none border border-wm-border border-l-4 ${meta.borderL} bg-wm-s1 transition hover:border-wm-accent/60`}>

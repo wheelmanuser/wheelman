@@ -30,7 +30,7 @@ export default function GaragePage() {
   const supabase = createClient();
   const { vehicles, fetchVehicles } = useVehicleStore();
   const { settings } = useUserSettings();
-  const distanceUnit = settings.distance_unit;
+  const distanceUnit = settings.distance_unit ?? "miles";
   const [filter, setFilter] = useState<FilterMode>("all");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);

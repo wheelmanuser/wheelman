@@ -25,7 +25,7 @@ function getRaw(telemetry: VehicleTelemetry | null | undefined): Record<string, 
 export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
   const router = useRouter();
   const { settings } = useUserSettings();
-  const distanceUnit = settings.distance_unit;
+  const distanceUnit = settings.distance_unit ?? "miles";
 
   const connectedCount = vehicles.filter((v) => deviceMap[v.id] !== null).length;
   const onlineCount = vehicles.filter((v) => telemetryMap[v.id]?.is_online === true).length;

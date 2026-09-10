@@ -96,6 +96,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
         `Est. ${formatDistanceUnit(distanceUnit)}/Year`,
         formatDistance(vehicle.estimated_miles_per_year, distanceUnit),
       ],
+      ["Odometer", formatDistance(vehicle.odometer_miles, distanceUnit)],
     ],
     [vehicle, distanceUnit],
   );

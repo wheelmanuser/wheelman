@@ -27,7 +27,12 @@ function categoryMeta(category: LogbookCategory) {
   return { iconName: "description", bg: "bg-wm-gold/20", text: "text-wm-gold", borderL: "border-l-wm-gold" };
 }
 
-export function EntryCard({ entry }: { entry: LogbookEntryWithDetails }) {
+type Props = {
+  entry: LogbookEntryWithDetails;
+  onEdit: (entry: LogbookEntryWithDetails) => void;
+};
+
+export function EntryCard({ entry, onEdit }: Props) {
   const [expanded, setExpanded] = useState(false);
   const meta = categoryMeta(entry.category);
   const { settings } = useUserSettings();
@@ -110,6 +115,17 @@ export function EntryCard({ entry }: { entry: LogbookEntryWithDetails }) {
               </div>
             </div>
           )}
+
+          <div className="mt-3 flex justify-end">
+            <button
+              type="button"
+              onClick={() => onEdit(entry)}
+              className="label-technical flex items-center gap-1 text-wm-text3 hover:text-wm-accent"
+            >
+              <Icon name="edit" size={14} />
+              Edit
+            </button>
+          </div>
         </div>
       )}
     </article>

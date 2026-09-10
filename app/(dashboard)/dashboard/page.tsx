@@ -5,7 +5,11 @@ import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance } from "@/lib/format-distance";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/layout/NotificationBell";
+import { LogbookPickerModal } from "@/components/dashboard/LogbookPickerModal";
+import type { Vehicle } from "@/types/database";
 export const dynamic = "force-dynamic";
+
+type VehiclePickerRow = Pick<Vehicle, "id" | "year" | "make" | "model" | "nickname">;
 
 type VehicleRow = {
   id: string;
@@ -203,13 +207,16 @@ async function RecentActivitySection() {
     }
   }
 
+  const { data: allVehicles } = await supabase
+    .from("vehicles")
+    .select("id,year,make,model,nickname")
+    .order("created_at", { ascending: false });
+
   return (
     <section className="border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s1 p-5">
       <div className="mb-4 flex items-center justify-between">
         <h3 className="label-technical text-wm-text3">Recent Logbook Activity</h3>
-        <Link href="/garage" className="label-technical text-wm-accent hover:text-wm-text">
-          View full logbook →
-        </Link>
+        <LogbookPickerModal vehicles={(allVehicles ?? []) as VehiclePickerRow[]} />
       </div>
       <div className="space-y-2">
         {entries.length === 0 ? (

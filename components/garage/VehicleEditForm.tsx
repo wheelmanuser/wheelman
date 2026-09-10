@@ -110,6 +110,24 @@ export function VehicleEditForm({ vehicle }: Props) {
         onSubmit={form.handleSubmit(onSubmit)}
         className="mt-6 space-y-4 border border-wm-border bg-wm-s1 p-6"
       >
+        {/* Odometer — kept separate since it lives outside the shared schema */}
+        <label className="block">
+          <span className="label-technical mb-1 block text-wm-text3">Current Odometer</span>
+          <input
+            type="number"
+            value={odometer}
+            onChange={(e) => setOdometer(e.target.value)}
+            placeholder="e.g. 45000"
+            className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+          />
+          <span className="mt-1 block text-xs text-wm-text3">
+            Enter your current mileage — this is used to calculate service reminder status
+          </span>
+          <span className="label-technical mt-1 block text-wm-text3">
+            Paid plan: odometer syncs automatically from your WhereQube device
+          </span>
+        </label>
+
         <label className="block">
           <span className="label-technical mb-1 block text-wm-text3">Nickname (optional)</span>
           <input
@@ -141,21 +159,6 @@ export function VehicleEditForm({ vehicle }: Props) {
             </label>
           );
         })}
-
-        {/* Odometer — kept separate since it lives outside the shared schema */}
-        <label className="block">
-          <span className="label-technical mb-1 block text-wm-text3">Current Odometer (miles)</span>
-          <input
-            type="number"
-            value={odometer}
-            onChange={(e) => setOdometer(e.target.value)}
-            placeholder="e.g. 45000"
-            className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
-          />
-          <span className="mt-1 block text-xs text-wm-text3">
-            Used to calculate miles remaining on service reminders.
-          </span>
-        </label>
 
         {submitError && (
           <p className="rounded-md border border-wm-red/40 bg-wm-red/10 px-3 py-2 text-sm text-wm-red">

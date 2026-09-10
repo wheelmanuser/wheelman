@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -17,6 +17,7 @@ import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
+import { DTCBadge } from "@/components/telematics/DTCBadge";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
 
 const VehicleMap = dynamic(
@@ -448,11 +449,6 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
           ? formatDistance(Number(telemetryRaw?.["Odometer"] ?? 0), distanceUnit)
           : "—",
     },
-    {
-      icon: "warning_amber",
-      label: "DTC Codes",
-      value: (telemetryRaw?.["DTCCodes"] as ReactNode) ?? "—",
-    },
   ];
 
   return (
@@ -702,6 +698,13 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                       <span className="font-headline text-lg text-wm-text2">{value}</span>
                     </div>
                   ))}
+                  <div className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
+                    <div className="mb-1 flex items-center gap-2">
+                      <Icon name="warning_amber" className="text-wm-accent" size={16} />
+                      <span className="label-technical text-wm-text3">DTC Codes</span>
+                    </div>
+                    <DTCBadge raw={telemetryRaw?.["DTCCodes"] as string | string[] | null | undefined} />
+                  </div>
                 </div>
 
                 <p className="label-technical text-wm-text3 mt-4">

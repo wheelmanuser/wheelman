@@ -164,9 +164,9 @@ supabase/
 - WHE-18: Vehicle data sync (poll/webhook) ✅ done (edge function; deploy + xVision credentials pending)
 - WHE-19: Device linking UI ✅ done
 - WHE-20: Per-vehicle live metrics UI ✅ done
-- WHE-21: Fleet telematics overview — todo
+- WHE-21: Fleet telematics overview ✅ done
 - WHE-22: GPS map view ✅ done (needs `NEXT_PUBLIC_MAPBOX_TOKEN` set)
-- WHE-23: DTC code lookup — todo
+- WHE-23: DTC code lookup ✅ done (`lib/dtc-codes.ts`, `components/telematics/DTCBadge.tsx`)
 
 ---
 

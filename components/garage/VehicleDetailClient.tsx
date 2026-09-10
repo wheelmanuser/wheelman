@@ -1,8 +1,9 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useRouter } from "next/navigation";
-import { useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from "react";
 import { useForm } from "react-hook-form";
 import { createClient } from "@/lib/supabase/client";
 import {
@@ -16,7 +17,12 @@ import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
-import type { Vehicle, VehicleDevice } from "@/types/database";
+import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
+
+const VehicleMap = dynamic(
+  () => import("@/components/telematics/VehicleMap").then((m) => m.VehicleMap),
+  { ssr: false },
+);
 
 type Tab = "overview" | "logbook" | "costs" | "telematics";
 
@@ -66,6 +72,8 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
   const [imei, setImei] = useState("");
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
+  const [telemetry, setTelemetry] = useState<VehicleTelemetry | null>(null);
+  const [telemetryLoading, setTelemetryLoading] = useState(false);
 
   const title = vehicleDisplayName(vehicle);
 
@@ -385,6 +393,68 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
     }
   };
 
+  const fetchTelemetry = useCallback(async () => {
+    setTelemetryLoading(true);
+    const supabase = createClient();
+    const { data } = await supabase
+      .from("vehicle_telemetry")
+      .select("*")
+      .eq("vehicle_id", vehicle.id)
+      .order("recorded_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+    setTelemetry((data as VehicleTelemetry) ?? null);
+    setTelemetryLoading(false);
+  }, [vehicle.id]);
+
+  useEffect(() => {
+    if (tab !== "telematics" || !device) return;
+    fetchTelemetry();
+    const interval = setInterval(fetchTelemetry, 30000);
+    return () => clearInterval(interval);
+  }, [tab, device, fetchTelemetry]);
+
+  const telemetryRaw = (telemetry?.raw ?? null) as Record<string, unknown> | null;
+
+  const telemetryMetrics = [
+    {
+      icon: "speed",
+      label: "Live Speed",
+      value:
+        telemetry?.speed != null
+          ? formatDistance(telemetry.speed, distanceUnit === "km" ? "km" : "miles") + "/h"
+          : "— mph",
+    },
+    {
+      icon: "local_gas_station",
+      label: "Fuel Level",
+      value: telemetryRaw?.["Fuel"] != null ? `${telemetryRaw["Fuel"]}%` : "—%",
+    },
+    {
+      icon: "thermostat",
+      label: "Engine Temp",
+      value: telemetryRaw?.["EngineTemp"] != null ? `${telemetryRaw["EngineTemp"]}°` : "—°",
+    },
+    {
+      icon: "battery_charging_full",
+      label: "Battery",
+      value: telemetryRaw?.["Battery"] != null ? `${telemetryRaw["Battery"]} V` : "— V",
+    },
+    {
+      icon: "route",
+      label: "Odometer",
+      value:
+        telemetry?.speed != null
+          ? formatDistance(Number(telemetryRaw?.["Odometer"] ?? 0), distanceUnit)
+          : "—",
+    },
+    {
+      icon: "warning_amber",
+      label: "DTC Codes",
+      value: (telemetryRaw?.["DTCCodes"] as ReactNode) ?? "—",
+    },
+  ];
+
   return (
     <div>
       <Link href="/garage" className="text-sm text-wm-text2 hover:text-wm-text">
@@ -594,35 +664,89 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                 </button>
               </div>
             )}
-            <div className="carbon-texture border border-l-4 border-wm-border border-l-wm-accent p-8 text-center">
-              <Icon name="sensors" className="mb-4 text-wm-accent" size={48} />
-              <h3 className="font-headline text-xl uppercase tracking-wide text-wm-text">Live Telematics</h3>
-              <p className="mx-auto mt-2 max-w-sm text-sm text-wm-text2">
-                Real-time OBD-II data, GPS tracking, and vehicle health diagnostics. Connect WhereQube device to unlock this feature.
-              </p>
-              <div className="mt-8 grid grid-cols-2 gap-4 text-left">
-                {[
-                  { icon: "speed", label: "Live Speed", value: "— mph" },
-                  { icon: "local_gas_station", label: "Fuel Level", value: "—%" },
-                  { icon: "thermostat", label: "Engine Temp", value: "—°F" },
-                  { icon: "battery_charging_full", label: "Battery", value: "— V" },
-                  { icon: "route", label: "Odometer", value: `— ${formatDistanceUnit(distanceUnit)}` },
-                  { icon: "warning_amber", label: "DTC Codes", value: "—" },
-                ].map(({ icon, label, value }) => (
-                  <div key={label} className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
-                    <div className="mb-1 flex items-center gap-2">
-                      <Icon name={icon} className="text-wm-accent" size={16} />
-                      <span className="label-technical text-wm-text3">{label}</span>
-                    </div>
-                    <span className="font-headline text-lg text-wm-text2">{value}</span>
+
+            {device ? (
+              <div className="carbon-texture border border-l-4 border-wm-border border-l-wm-accent p-8">
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`h-2 w-2 rounded-full ${
+                        telemetry?.is_online === true
+                          ? "bg-wm-accent"
+                          : telemetry?.is_online === false
+                          ? "bg-wm-red"
+                          : "bg-wm-text3"
+                      }`}
+                    />
+                    <span className="label-technical text-wm-text2">
+                      {telemetry?.is_online === true ? "Online" : telemetry?.is_online === false ? "Offline" : "No Data"}
+                    </span>
                   </div>
-                ))}
+                  <button
+                    type="button"
+                    onClick={fetchTelemetry}
+                    disabled={telemetryLoading}
+                    className="label-technical border border-wm-accent px-3 py-1 text-xs text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
+                  >
+                    Refresh
+                  </button>
+                </div>
+
+                <div className="mt-6 grid grid-cols-2 gap-4 text-left">
+                  {telemetryMetrics.map(({ icon, label, value }) => (
+                    <div key={label} className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
+                      <div className="mb-1 flex items-center gap-2">
+                        <Icon name={icon} className="text-wm-accent" size={16} />
+                        <span className="label-technical text-wm-text3">{label}</span>
+                      </div>
+                      <span className="font-headline text-lg text-wm-text2">{value}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="label-technical text-wm-text3 mt-4">
+                  {telemetry?.recorded_at
+                    ? `Last updated: ${new Date(telemetry.recorded_at).toLocaleTimeString()}`
+                    : "No data yet"}
+                </p>
+
+                {telemetry?.latitude && telemetry?.longitude && (
+                  <div className="mt-6">
+                    <VehicleMap telemetry={telemetry} vehicleName={vehicleDisplayName(vehicle)} />
+                  </div>
+                )}
               </div>
-              <div className="mt-8 border border-dashed border-wm-border p-4">
-                <span className="label-technical text-wm-accent">WhereQube Integration — Coming in v2</span>
-                <p className="mt-2 text-xs text-wm-text3">Plug-and-play OBD-II adapter with real-time cloud sync.</p>
+            ) : (
+              <div className="carbon-texture border border-l-4 border-wm-border border-l-wm-accent p-8 text-center">
+                <Icon name="sensors" className="mb-4 text-wm-accent" size={48} />
+                <h3 className="font-headline text-xl uppercase tracking-wide text-wm-text">Live Telematics</h3>
+                <p className="mx-auto mt-2 max-w-sm text-sm text-wm-text2">
+                  Real-time OBD-II data, GPS tracking, and vehicle health diagnostics. Connect WhereQube device to unlock this feature.
+                </p>
+                <div className="mt-8 grid grid-cols-2 gap-4 text-left">
+                  {[
+                    { icon: "speed", label: "Live Speed", value: "— mph" },
+                    { icon: "local_gas_station", label: "Fuel Level", value: "—%" },
+                    { icon: "thermostat", label: "Engine Temp", value: "—°F" },
+                    { icon: "battery_charging_full", label: "Battery", value: "— V" },
+                    { icon: "route", label: "Odometer", value: `— ${formatDistanceUnit(distanceUnit)}` },
+                    { icon: "warning_amber", label: "DTC Codes", value: "—" },
+                  ].map(({ icon, label, value }) => (
+                    <div key={label} className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
+                      <div className="mb-1 flex items-center gap-2">
+                        <Icon name={icon} className="text-wm-accent" size={16} />
+                        <span className="label-technical text-wm-text3">{label}</span>
+                      </div>
+                      <span className="font-headline text-lg text-wm-text2">{value}</span>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-8 border border-dashed border-wm-border p-4">
+                  <span className="label-technical text-wm-accent">WhereQube Integration — Coming in v2</span>
+                  <p className="mt-2 text-xs text-wm-text3">Plug-and-play OBD-II adapter with real-time cloud sync.</p>
+                </div>
               </div>
-            </div>
+            )}
           </div>
         )}
       </div>

@@ -139,6 +139,25 @@ export type VehicleDevice = {
   updated_at: string;
 };
 
+export type VehicleTelemetry = {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  object_id: string;
+  speed: number | null;
+  latitude: number | null;
+  longitude: number | null;
+  address: string | null;
+  altitude: number | null;
+  heading: number | null;
+  is_online: boolean | null;
+  ignition: string | null;
+  vehicle_status: string | null;
+  last_contact: string | null;
+  raw: Json | null;
+  recorded_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {

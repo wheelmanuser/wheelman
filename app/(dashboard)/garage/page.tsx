@@ -42,9 +42,8 @@ export default function GaragePage() {
       try {
         setError(null);
         const { data: devices } = await supabase
-          .from("telematics_devices")
-          .select("vehicle_id")
-          .eq("is_active", true);
+          .from("vehicle_devices")
+          .select("vehicle_id");
         setDeviceVehicleIds(new Set((devices ?? []).map((d) => d.vehicle_id)));
         await fetchVehicles();
       } catch (loadError) {

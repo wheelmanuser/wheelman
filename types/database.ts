@@ -127,6 +127,18 @@ export interface ServiceSchedule {
   updated_at: string;
 }
 
+export type VehicleDevice = {
+  id: string;
+  vehicle_id: string;
+  user_id: string;
+  object_id: string;
+  imei: string | null;
+  device_name: string | null;
+  activated: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
 export type Database = {
   public: {
     Tables: {

@@ -16,7 +16,7 @@ import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
-import type { Vehicle } from "@/types/database";
+import type { Vehicle, VehicleDevice } from "@/types/database";
 
 type Tab = "overview" | "logbook" | "costs" | "telematics";
 
@@ -42,10 +42,11 @@ type DoneForm = {
 type Props = {
   vehicle: Vehicle;
   hasDevice: boolean;
+  device: VehicleDevice | null;
   initialSchedules: ScheduleWithPct[];
 };
 
-export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Props) {
+export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedules }: Props) {
   const router = useRouter();
   const { settings } = useUserSettings();
   const distanceUnit = settings.distance_unit;
@@ -59,6 +60,12 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
   const [doneSchedule, setDoneSchedule] = useState<ScheduleWithPct | null>(null);
   const [doneSaving, setDoneSaving] = useState(false);
   const [doneError, setDoneError] = useState<string | null>(null);
+  const [linkDrawerOpen, setLinkDrawerOpen] = useState(false);
+  const [objectId, setObjectId] = useState("");
+  const [deviceName, setDeviceName] = useState("");
+  const [imei, setImei] = useState("");
+  const [linking, setLinking] = useState(false);
+  const [linkError, setLinkError] = useState<string | null>(null);
 
   const title = vehicleDisplayName(vehicle);
 
@@ -321,6 +328,63 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
     return parts.length > 0 ? parts.join(" · ") : "—";
   };
 
+  const openLinkDrawer = () => {
+    setObjectId("");
+    setDeviceName("");
+    setImei("");
+    setLinkError(null);
+    setLinkDrawerOpen(true);
+  };
+
+  const closeLinkDrawer = () => {
+    setLinkDrawerOpen(false);
+    setLinkError(null);
+  };
+
+  const handleLinkDevice = async () => {
+    if (!objectId.trim()) {
+      setLinkError("Object ID is required.");
+      return;
+    }
+    setLinking(true);
+    setLinkError(null);
+
+    const supabase = createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      setLinkError("Not signed in.");
+      setLinking(false);
+      return;
+    }
+
+    const { error } = await supabase.from("vehicle_devices").insert({
+      vehicle_id: vehicle.id,
+      user_id: user.id,
+      object_id: objectId.trim(),
+      device_name: deviceName.trim() || null,
+      imei: imei.trim() || null,
+    });
+
+    if (error) {
+      setLinkError(error.message);
+      setLinking(false);
+      return;
+    }
+
+    closeLinkDrawer();
+    router.refresh();
+    setLinking(false);
+  };
+
+  const handleUnlinkDevice = async () => {
+    if (!device) return;
+    const supabase = createClient();
+    const { error } = await supabase.from("vehicle_devices").delete().eq("id", device.id);
+    if (!error) {
+      router.refresh();
+    }
+  };
+
   return (
     <div>
       <Link href="/garage" className="text-sm text-wm-text2 hover:text-wm-text">
@@ -500,6 +564,36 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
 
         {tab === "telematics" && (
           <div className="space-y-6">
+            {device ? (
+              <div className="flex flex-wrap items-center justify-between gap-3 border border-l-4 border-wm-accent/30 border-l-wm-accent bg-wm-s1 px-4 py-3">
+                <div className="flex items-center gap-3">
+                  <span className="label-technical rounded-sm bg-wm-accent/20 px-2 py-1 text-wm-accent">
+                    Connected
+                  </span>
+                  <div className="text-sm text-wm-text">
+                    <span className="font-medium">{device.device_name || "WhereQube Device"}</span>
+                    <span className="ml-2 font-mono text-xs text-wm-text3">{device.object_id}</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={handleUnlinkDevice}
+                  className="label-technical border border-wm-red/40 px-3 py-1.5 text-wm-red transition-colors hover:bg-wm-red hover:text-white"
+                >
+                  Unlink
+                </button>
+              </div>
+            ) : (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={openLinkDrawer}
+                  className="label-technical border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
+                >
+                  Link WhereQube Device
+                </button>
+              </div>
+            )}
             <div className="carbon-texture border border-l-4 border-wm-border border-l-wm-accent p-8 text-center">
               <Icon name="sensors" className="mb-4 text-wm-accent" size={48} />
               <h3 className="font-headline text-xl uppercase tracking-wide text-wm-text">Live Telematics</h3>
@@ -763,6 +857,71 @@ export function VehicleDetailClient({ vehicle, hasDevice, initialSchedules }: Pr
                 className="mt-auto rounded-sm border border-wm-accent bg-wm-accent-dark py-2 text-xs uppercase tracking-wider text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
               >
                 {saving ? "Saving..." : editingSchedule ? "Update Reminder" : "Save Reminder"}
+              </button>
+            </form>
+          </aside>
+        </>
+      )}
+
+      {linkDrawerOpen && (
+        <>
+          <button
+            type="button"
+            className="fixed inset-0 z-40 bg-wm-bg/70"
+            aria-label="Close drawer"
+            onClick={closeLinkDrawer}
+          />
+          <aside className="carbon-texture fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-wm-border bg-wm-s1 p-6 shadow-xl">
+            <div className="flex items-center justify-between">
+              <h3 className="font-headline text-xl tracking-wide text-wm-text">Link WhereQube Device</h3>
+              <button type="button" onClick={closeLinkDrawer} className="text-wm-text2 hover:text-wm-text"><Icon name="close" size={20} /></button>
+            </div>
+
+            <form
+              className="mt-6 flex flex-1 flex-col gap-4 overflow-y-auto"
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLinkDevice();
+              }}
+            >
+              <label className="block text-sm">
+                <span className="text-wm-text2">Object ID</span>
+                <input
+                  className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
+                  placeholder="e.g. OBJ-12345"
+                  value={objectId}
+                  onChange={(e) => setObjectId(e.target.value)}
+                />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-wm-text2">Device Name (optional)</span>
+                <input
+                  className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
+                  placeholder="e.g. WhereQube #1"
+                  value={deviceName}
+                  onChange={(e) => setDeviceName(e.target.value)}
+                />
+              </label>
+
+              <label className="block text-sm">
+                <span className="text-wm-text2">IMEI (optional)</span>
+                <input
+                  className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
+                  placeholder="e.g. 356938035643809"
+                  value={imei}
+                  onChange={(e) => setImei(e.target.value)}
+                />
+              </label>
+
+              {linkError && <p className="text-sm text-wm-red">{linkError}</p>}
+
+              <button
+                type="submit"
+                disabled={linking}
+                className="mt-auto rounded-sm border border-wm-accent bg-wm-accent-dark py-2 text-xs uppercase tracking-wider text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
+              >
+                {linking ? "Linking..." : "Link Device"}
               </button>
             </form>
           </aside>

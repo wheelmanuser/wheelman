@@ -1,4 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { checkAuthorization } from "./auth.ts";
 import { applyObdFallback, DEDUPE_FIELDS, isDuplicateReading, OBD_FIELDS, toTelemetryRow } from "./parse.ts";
 
 const XVISION_API_URL = Deno.env.get("XVISION_API_URL")!;
@@ -90,7 +91,14 @@ async function getDevices(tokens: Tokens): Promise<any[]> {
   );
 }
 
-Deno.serve(async () => {
+Deno.serve(async (req) => {
+  const auth = checkAuthorization(req.headers.get("Authorization"), Deno.env.get("SYNC_TELEMETRY_KEY"));
+  if (auth === "misconfigured") {
+    console.error("[sync-telemetry] SYNC_TELEMETRY_KEY is not set; refusing to run");
+    return json({ error: "server misconfigured" }, 500);
+  }
+  if (auth === "unauthorized") return json({ error: "unauthorized" }, 401);
+
   const supabase = createClient(
     Deno.env.get("SUPABASE_URL")!,
     Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!

@@ -136,6 +136,38 @@ export function parseExtraData(extra: unknown) {
   };
 }
 
+// A new reading is a duplicate of the previous row only if every one of these fields matches.
+export const DEDUPE_FIELDS = [
+  "last_contact",
+  "latitude",
+  "longitude",
+  "speed",
+  "is_online",
+  "ignition",
+  "vehicle_status",
+  "odometer_miles",
+  "fuel_level_pct",
+  "input_voltage",
+] as const;
+
+function sameValue(field: string, a: unknown, b: unknown): boolean {
+  const x = a ?? null;
+  const y = b ?? null;
+  if (x === null || y === null) return x === y;
+  // The DB returns timestamptz as "...+00:00" while a new reading is "...Z", so compare instants.
+  if (field === "last_contact") return Date.parse(String(x)) === Date.parse(String(y));
+  if (typeof x === "number" || typeof y === "number") return Number(x) === Number(y);
+  return x === y;
+}
+
+export function isDuplicateReading(
+  previous: Record<string, unknown> | null | undefined,
+  next: Record<string, unknown>,
+): boolean {
+  if (!previous) return false;
+  return DEDUPE_FIELDS.every((field) => sameValue(field, previous[field], next[field]));
+}
+
 export type LinkedDevice = { vehicle_id: string; user_id: string; object_id: string };
 
 export function toTelemetryRow(linked: LinkedDevice, device: any, extraData?: unknown) {

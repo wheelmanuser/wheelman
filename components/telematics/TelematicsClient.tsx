@@ -2,9 +2,11 @@
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { CheckEngineStatus } from "@/components/telematics/CheckEngineStatus";
 import { useCheckEngine } from "@/components/telematics/useCheckEngine";
+import { useVisibleInterval } from "@/components/telematics/useVisibleInterval";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance } from "@/lib/format-distance";
 import { formatDeviceBattery, formatFuelLevel, formatMpg, formatVolts } from "@/lib/telemetry-display";
@@ -26,9 +28,27 @@ export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
 
   const connectedCount = vehicles.filter((v) => deviceMap[v.id] !== null).length;
   const onlineCount = vehicles.filter((v) => telemetryMap[v.id]?.is_online === true).length;
-  const { results: checkEngineResults } = useCheckEngine(
+  const { results: checkEngineResults, refresh: refreshCheckEngine } = useCheckEngine(
     vehicles.filter((v) => deviceMap[v.id] !== null).map((v) => v.id),
   );
+
+  // Telemetry is loaded by the server component, so "refetch" means router.refresh(). Running it in a
+  // transition lets us stamp "Last updated" when the new data has actually arrived.
+  const [isRefreshing, startRefresh] = useTransition();
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const wasRefreshing = useRef(false);
+  const refreshTelemetry = useCallback(() => startRefresh(() => router.refresh()), [router]);
+
+  useEffect(() => {
+    setLastUpdated(new Date());
+  }, []);
+  useEffect(() => {
+    if (wasRefreshing.current && !isRefreshing) setLastUpdated(new Date());
+    wasRefreshing.current = isRefreshing;
+  }, [isRefreshing]);
+
+  // Matches the 60s sync cron; paused while the browser tab is hidden, refetched when it becomes visible.
+  useVisibleInterval(refreshTelemetry, 60_000);
   const alertsCount = vehicles.filter((v) => {
     const state = checkEngineResults[v.id];
     return state?.status === "ok" && state.milOn;
@@ -47,10 +67,14 @@ export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
         </div>
         <button
           type="button"
-          onClick={() => router.refresh()}
-          className="label-technical border border-wm-accent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
+          onClick={() => {
+            refreshTelemetry();
+            void refreshCheckEngine();
+          }}
+          disabled={isRefreshing}
+          className="label-technical border border-wm-accent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
         >
-          Refresh All
+          {isRefreshing ? "Refreshing..." : "Refresh All"}
         </button>
       </header>
 
@@ -91,7 +115,7 @@ export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
       </div>
 
       <p className="label-technical text-wm-text3">
-        Page refreshed: {new Date().toLocaleTimeString()}
+        Last updated: {lastUpdated ? lastUpdated.toLocaleTimeString() : "—"}
       </p>
 
       {/* Per-vehicle cards */}

@@ -19,6 +19,7 @@ import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { CheckEngineStatus } from "@/components/telematics/CheckEngineStatus";
 import { useCheckEngine } from "@/components/telematics/useCheckEngine";
+import { useVisibleInterval } from "@/components/telematics/useVisibleInterval";
 import { formatDeviceBattery, formatFuelLevel, formatMpg, formatVolts } from "@/lib/telemetry-display";
 import { MapErrorBoundary } from "@/components/telematics/MapErrorBoundary";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
@@ -89,6 +90,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
   const [linkError, setLinkError] = useState<string | null>(null);
   const [telemetry, setTelemetry] = useState<VehicleTelemetry | null>(null);
   const [telemetryLoading, setTelemetryLoading] = useState(false);
+  const [telemetryFetchedAt, setTelemetryFetchedAt] = useState<Date | null>(null);
 
   const title = vehicleDisplayName(vehicle);
 
@@ -429,23 +431,29 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
   const fetchTelemetry = useCallback(async () => {
     setTelemetryLoading(true);
     const supabase = createClient();
-    const { data } = await supabase
+    const { data, error } = await supabase
       .from("vehicle_telemetry")
       .select("*")
       .eq("vehicle_id", vehicle.id)
       .order("recorded_at", { ascending: false })
       .limit(1)
       .maybeSingle();
-    setTelemetry((data as VehicleTelemetry) ?? null);
+    // A failed refresh keeps the previous reading on screen instead of blanking it.
+    if (!error) {
+      setTelemetry((data as VehicleTelemetry) ?? null);
+      setTelemetryFetchedAt(new Date());
+    }
     setTelemetryLoading(false);
   }, [vehicle.id]);
 
+  const telematicsActive = tab === "telematics" && !!device;
+
   useEffect(() => {
-    if (tab !== "telematics" || !device) return;
-    fetchTelemetry();
-    const interval = setInterval(fetchTelemetry, 30000);
-    return () => clearInterval(interval);
-  }, [tab, device, fetchTelemetry]);
+    if (telematicsActive) void fetchTelemetry();
+  }, [telematicsActive, fetchTelemetry]);
+
+  // Matches the 60s sync cron; paused while the browser tab is hidden, refetched when it becomes visible.
+  useVisibleInterval(fetchTelemetry, 60_000, telematicsActive);
 
   const { results: checkEngineResults, refresh: refreshCheckEngine } = useCheckEngine(
     [vehicle.id],
@@ -731,9 +739,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                 </div>
 
                 <p className="label-technical text-wm-text3 mt-4">
-                  {telemetry?.recorded_at
-                    ? `Last updated: ${new Date(telemetry.recorded_at).toLocaleTimeString()}`
-                    : "No data yet"}
+                  {telemetryFetchedAt ? `Last updated: ${telemetryFetchedAt.toLocaleTimeString()}` : "No data yet"}
+                </p>
+                <p className="label-technical text-wm-text3 mt-1">
+                  Last seen: {telemetry?.last_contact ? new Date(telemetry.last_contact).toLocaleString() : "Never"}
                 </p>
 
                 {telemetry?.latitude && telemetry?.longitude && (

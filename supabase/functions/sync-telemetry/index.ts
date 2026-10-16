@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { toTelemetryRow } from "./parse.ts";
+import { DEDUPE_FIELDS, isDuplicateReading, toTelemetryRow } from "./parse.ts";
 
 const XVISION_API_URL = Deno.env.get("XVISION_API_URL")!;
 const XVISION_EMAIL = Deno.env.get("XVISION_EMAIL")!;
@@ -123,7 +123,7 @@ Deno.serve(async () => {
 
   // GetDevices omits OBD data; GetDevice returns it under ExtraData. A failure here only costs that
   // device its OBD columns (they stay null), not the whole sync.
-  const inserts = await Promise.all(
+  const readings = await Promise.all(
     matched.map(async ({ linked, device }) => {
       let extraData: unknown;
       try {
@@ -139,6 +139,29 @@ Deno.serve(async () => {
     }),
   );
 
+  // Latest stored row per vehicle in a single query (embedded resource, ordered + limited per parent,
+  // served by the (vehicle_id, recorded_at desc) index). If it fails, fall back to inserting everything.
+  const latestByVehicle = new Map<string, Record<string, unknown>>();
+  if (readings.length) {
+    const { data: latestRows, error: latestError } = await supabase
+      .from("vehicles")
+      .select(`id, vehicle_telemetry(${DEDUPE_FIELDS.join(", ")})`)
+      .in("id", readings.map((r) => r.vehicle_id))
+      .order("recorded_at", { referencedTable: "vehicle_telemetry", ascending: false })
+      .limit(1, { referencedTable: "vehicle_telemetry" });
+    if (latestError) {
+      console.error("[sync-telemetry] could not load latest readings, skipping dedupe:", latestError);
+    } else {
+      for (const v of latestRows ?? []) {
+        const latest = (v as any).vehicle_telemetry?.[0];
+        if (latest) latestByVehicle.set((v as any).id, latest);
+      }
+    }
+  }
+
+  const inserts = readings.filter((r) => !isDuplicateReading(latestByVehicle.get(r.vehicle_id), r));
+  const skipped = readings.length - inserts.length;
+
   if (inserts.length) {
     const { error: insertError } = await supabase.from("vehicle_telemetry").insert(inserts);
     if (insertError) {
@@ -147,5 +170,5 @@ Deno.serve(async () => {
     }
   }
 
-  return json({ synced: inserts.length }, 200);
+  return json({ synced: inserts.length, skipped }, 200);
 });

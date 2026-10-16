@@ -2,6 +2,8 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  DEDUPE_FIELDS,
+  isDuplicateReading,
   parseExtraData,
   parseFuelEconomyMpg,
   parseLastContact,
@@ -181,4 +183,86 @@ test("toTelemetryRow without ExtraData (GetDevice failed) leaves OBD columns nul
   assert.equal(row.fuel_economy_mpg, null);
   assert.equal(row.device_battery_pct, null);
   assert.deepEqual(row.raw, { Speed: 0 });
+});
+
+const READING = {
+  last_contact: "2026-10-16T22:40:05.000Z",
+  latitude: 41.8781,
+  longitude: -87.6298,
+  speed: 0,
+  is_online: true,
+  ignition: "0",
+  vehicle_status: "Parked",
+  odometer_miles: 4062.5,
+  fuel_level_pct: 56,
+  input_voltage: 12.3,
+};
+
+test("dedupe: an identical reading is a duplicate", () => {
+  assert.equal(isDuplicateReading({ ...READING }, { ...READING }), true);
+});
+
+test("dedupe: no previous row means insert", () => {
+  assert.equal(isDuplicateReading(null, READING), false);
+  assert.equal(isDuplicateReading(undefined, READING), false);
+});
+
+test("dedupe: changing any single compared field inserts", () => {
+  const changed: Record<(typeof DEDUPE_FIELDS)[number], unknown> = {
+    last_contact: "2026-10-16T22:41:05.000Z",
+    latitude: 41.8782,
+    longitude: -87.6299,
+    speed: 12,
+    is_online: false,
+    ignition: "1",
+    vehicle_status: "Moving",
+    odometer_miles: 4062.6,
+    fuel_level_pct: 55,
+    input_voltage: 12.4,
+  };
+  for (const field of DEDUPE_FIELDS) {
+    assert.equal(isDuplicateReading({ ...READING }, { ...READING, [field]: changed[field] }), false, field);
+  }
+});
+
+test("dedupe: null versus a number counts as changed, in both directions (including 0)", () => {
+  for (const field of ["latitude", "speed", "odometer_miles", "fuel_level_pct", "input_voltage"] as const) {
+    assert.equal(isDuplicateReading({ ...READING }, { ...READING, [field]: null }), false, `${field} number->null`);
+    assert.equal(isDuplicateReading({ ...READING, [field]: null }, { ...READING }), false, `${field} null->number`);
+  }
+  assert.equal(isDuplicateReading({ ...READING, speed: null }, { ...READING, speed: 0 }), false);
+  assert.equal(isDuplicateReading({ ...READING, speed: 0 }, { ...READING, speed: null }), false);
+});
+
+test("dedupe: null on both sides (or a missing field) matches", () => {
+  const nulls = { ...READING, last_contact: null, latitude: null, longitude: null, speed: null, odometer_miles: null };
+  assert.equal(isDuplicateReading({ ...nulls }, { ...nulls }), true);
+  const withoutOdometer: Record<string, unknown> = { ...nulls };
+  delete withoutOdometer.odometer_miles;
+  assert.equal(isDuplicateReading(withoutOdometer, { ...nulls }), true);
+});
+
+test("dedupe: last_contact compares as an instant, not a string", () => {
+  assert.equal(
+    isDuplicateReading({ ...READING, last_contact: "2026-10-16T22:40:05+00:00" }, { ...READING }),
+    true,
+  );
+  assert.equal(
+    isDuplicateReading({ ...READING, last_contact: "2026-10-16T17:40:05-05:00" }, { ...READING }),
+    true,
+  );
+  assert.equal(
+    isDuplicateReading({ ...READING, last_contact: "2026-10-16T22:40:06+00:00" }, { ...READING }),
+    false,
+  );
+});
+
+test("dedupe: fields outside the comparison list do not count", () => {
+  assert.equal(
+    isDuplicateReading(
+      { ...READING },
+      { ...READING, altitude: 200, address: "elsewhere", fuel_economy_mpg: 20, device_battery_pct: 50, raw: { x: 1 } },
+    ),
+    true,
+  );
 });

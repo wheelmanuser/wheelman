@@ -18,6 +18,7 @@ import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { DTCBadge } from "@/components/telematics/DTCBadge";
+import { MapErrorBoundary } from "@/components/telematics/MapErrorBoundary";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
 import type { XVisionDeviceOption } from "@/lib/xvision/types";
 
@@ -742,7 +743,9 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
 
                 {telemetry?.latitude && telemetry?.longitude && (
                   <div className="mt-6">
-                    <VehicleMap telemetry={telemetry} vehicleName={vehicleDisplayName(vehicle)} />
+                    <MapErrorBoundary>
+                      <VehicleMap telemetry={telemetry} vehicleName={vehicleDisplayName(vehicle)} />
+                    </MapErrorBoundary>
                   </div>
                 )}
               </div>

@@ -4,22 +4,49 @@ const XVISION_API_URL = Deno.env.get("XVISION_API_URL")!;
 const XVISION_EMAIL = Deno.env.get("XVISION_EMAIL")!;
 const XVISION_PASSWORD = Deno.env.get("XVISION_PASSWORD")!;
 
-async function getXVisionToken(): Promise<string> {
+type Tokens = { access: string; refresh: string };
+
+function parseTokens(data: any): Tokens {
+  const access = data?.access ?? data?.Access;
+  const refresh = data?.refresh ?? data?.Refresh;
+  if (typeof access !== "string" || typeof refresh !== "string") {
+    throw new Error("xVision token response missing access/refresh");
+  }
+  return { access, refresh };
+}
+
+async function login(): Promise<Tokens> {
   const res = await fetch(`${XVISION_API_URL}/User/Login`, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ email: XVISION_EMAIL, password: XVISION_PASSWORD }),
+    body: JSON.stringify({ Email: XVISION_EMAIL, Password: XVISION_PASSWORD }),
   });
   if (!res.ok) throw new Error(`xVision login failed: ${await res.text()}`);
-  const data = await res.json();
-  if (typeof data?.refresh !== "string") throw new Error("xVision login response missing refresh token");
-  return data.refresh;
+  return parseTokens(await res.json());
 }
 
-async function getDevices(token: string): Promise<any[]> {
-  const res = await fetch(`${XVISION_API_URL}/Device/GetDevices`, {
-    headers: { token },
+async function refreshTokens(refresh: string): Promise<Tokens> {
+  const res = await fetch(`${XVISION_API_URL}/User/RefreshTokens`, {
+    headers: { SessionKey: refresh, RefreshKey: refresh },
   });
+  if (!res.ok) throw new Error(`xVision refresh failed: ${await res.text()}`);
+  return parseTokens(await res.json());
+}
+
+async function sessionExpired(res: Response): Promise<boolean> {
+  if (res.status === 401) return true;
+  if (res.ok) return false;
+  return (await res.clone().text()).includes("SessionKey expired");
+}
+
+async function getDevices(tokens: Tokens): Promise<any[]> {
+  const call = (access: string) =>
+    fetch(`${XVISION_API_URL}/Device/GetDevices`, { headers: { SessionKey: access } });
+
+  let res = await call(tokens.access);
+  if (await sessionExpired(res)) {
+    res = await call((await refreshTokens(tokens.refresh)).access);
+  }
   if (!res.ok) throw new Error(`GetDevices failed: ${await res.text()}`);
   return res.json();
 }
@@ -38,8 +65,8 @@ Deno.serve(async () => {
   if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
   if (!linkedDevices?.length) return new Response(JSON.stringify({ message: "No linked devices" }), { status: 200 });
 
-  const token = await getXVisionToken();
-  const devices = await getDevices(token);
+  const tokens = await login();
+  const devices = await getDevices(tokens);
 
   // Match xVision devices to linked vehicles
   const inserts = [];

@@ -1,60 +1,29 @@
-type TokenPair = { access: string; refresh: string };
-type TokenCache = TokenPair & { expiresAt: number };
-
-const EXPIRY_BUFFER_MS = 60 * 1000;
-const TOKEN_TTL_MS = 55 * 60 * 1000;
-
-let tokenCache: TokenCache | null = null;
-
-function requireEnv(name: "XVISION_API_URL" | "XVISION_EMAIL" | "XVISION_PASSWORD"): string {
-  const value = process.env[name];
-  if (!value) throw new Error(`Missing ${name}`);
-  return value;
-}
-
-function storeTokens(data: unknown): string {
-  const pair = data as Partial<TokenPair> | null;
-  if (typeof pair?.access !== "string" || typeof pair?.refresh !== "string") {
-    throw new Error("xVision token response missing access/refresh");
-  }
-  tokenCache = {
-    access: pair.access,
-    refresh: pair.refresh,
-    expiresAt: Date.now() + TOKEN_TTL_MS,
-  };
-  return tokenCache.refresh;
-}
+let tokenCache: { access: string; refresh: string; expiresAt: number } | null = null;
 
 export async function getXVisionToken(): Promise<string> {
-  if (tokenCache && tokenCache.expiresAt > Date.now() + EXPIRY_BUFFER_MS) {
-    return tokenCache.refresh;
-  }
-
-  const res = await fetch(`${requireEnv("XVISION_API_URL")}/User/Login`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      email: requireEnv("XVISION_EMAIL"),
-      password: requireEnv("XVISION_PASSWORD"),
-    }),
+  if (tokenCache && tokenCache.expiresAt > Date.now() + 60000) return tokenCache.access;
+  const res = await fetch(`${process.env.XVISION_API_URL}/User/Login`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ Email: process.env.XVISION_EMAIL, Password: process.env.XVISION_PASSWORD }),
   });
   if (!res.ok) throw new Error(`xVision login failed: ${await res.text()}`);
-  return storeTokens(await res.json());
+  const data = await res.json();
+  tokenCache = { access: data.access ?? data.Access, refresh: data.refresh ?? data.Refresh, expiresAt: Date.now() + 55 * 60 * 1000 };
+  return tokenCache.access;
 }
 
 export async function refreshXVisionToken(): Promise<string> {
   if (!tokenCache) return getXVisionToken();
-
-  const res = await fetch(`${requireEnv("XVISION_API_URL")}/User/RefreshTokens`, {
-    headers: { token: tokenCache.refresh },
+  const res = await fetch(`${process.env.XVISION_API_URL}/User/RefreshTokens`, {
+    headers: { SessionKey: tokenCache.refresh, RefreshKey: tokenCache.refresh },
   });
-  if (!res.ok) {
-    tokenCache = null;
-    throw new Error(`xVision token refresh failed: ${await res.text()}`);
-  }
-  return storeTokens(await res.json());
+  if (!res.ok) throw new Error(`xVision refresh failed: ${await res.text()}`);
+  const data = await res.json();
+  tokenCache = { access: data.access ?? data.Access, refresh: data.refresh ?? data.Refresh, expiresAt: Date.now() + 55 * 60 * 1000 };
+  return tokenCache.access;
 }
 
-export function getCachedTokens(): TokenPair | null {
+export function getCachedTokens(): { access: string; refresh: string } | null {
   return tokenCache ? { access: tokenCache.access, refresh: tokenCache.refresh } : null;
 }

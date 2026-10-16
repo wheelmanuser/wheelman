@@ -129,7 +129,7 @@ lib/
   format-distance.ts           — formatDistance(), formatDistanceUnit()
   xvision/
     auth.ts                 — getXVisionToken(), refreshXVisionToken() (in-memory token cache)
-    client.ts               — xvisionGet<T>(), xvisionPost<T>() (retry once on 401)
+    client.ts               — xvisionGet<T>(), xvisionPost<T>() (SessionKey header; retry once on 401)
 
 contexts/
   UserSettingsContext.tsx   — reactive settings (theme, units, avatar)
@@ -149,18 +149,20 @@ supabase/
 ---
 
 ## xVision / Telematics API
-- **Base URL:** `https://app-dev.xvisioncloud.com`
-- **Auth:** POST `/User/Login` (email + password) → returns `{ access, refresh }`. Requests send the **refresh** token in a `token` header — no `apikey` header.
-- **Token lifecycle:** `lib/xvision/auth.ts` caches tokens in memory (55 min TTL, 1 min buffer). On a 401, `client.ts` calls `GET /User/RefreshTokens` (current token in `token` header) and retries once.
+- **Base URL:** `https://api-dev.xvisioncloud.net` (NOT `app-dev.xvisioncloud.com` — that host serves the web app, and `/User/Login` there returns HTML / 405)
+- **Auth:** POST `/User/Login` with body `{ Email, Password }` (capitalized) → returns `{ access, refresh, UserID, ... }`. Requests send the **access** token in a `SessionKey` header.
+- **Refresh:** `GET /User/RefreshTokens` with headers `SessionKey` and `RefreshKey` both set to the **refresh** token → returns a new `{ access, refresh }`.
+- **Expired session:** signaled in the response body as `"SessionKey expired."`. HTTP status unconfirmed — other auth errors (e.g. "Not authorized.") come back as 400, so don't assume 401.
+- **Token cache:** `lib/xvision/auth.ts` caches tokens in memory (55 min TTL, 1 min buffer); `client.ts` refreshes and retries once on 401.
 - **Key endpoint:** `GET /Device/GetDevices` → returns Speed, Lat, Lng, Address, IsOnline, Ignition, LastContact per device
 - **Credentials:** stored in `.env.local` as `XVISION_API_URL`, `XVISION_EMAIL`, `XVISION_PASSWORD`
-- **Status:** Auth layer rewritten to the refresh-token flow. Not yet verified against the live API — run `npx tsx --env-file=.env.local scripts/test-xvision.ts` with real credentials.
+- **Status:** Login + GetDevices verified live (returns `[]` — the account has no devices yet). Test with `npx tsx --env-file=.env.local scripts/test-xvision.ts`. Flow inferred from the xVision web app's own client, not official docs.
 
 ---
 
 ## Current Phase
 **Phase 3 — Telematics Integration (active)**
-- WHE-16: xVision API connectivity test — auth rewritten (no API key needed); awaiting live test with real credentials
+- WHE-16: xVision API connectivity test ✅ login + GetDevices verified live (no API key needed); no devices on the account yet
 - WHE-17: Supabase schema ✅ done
 - WHE-18: Vehicle data sync (poll/webhook) ✅ done (edge function; deploy + xVision credentials pending)
 - WHE-19: Device linking UI ✅ done
@@ -176,7 +178,7 @@ supabase/
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=https://wheelman.vercel.app
-XVISION_API_URL=https://app-dev.xvisioncloud.com
+XVISION_API_URL=https://api-dev.xvisioncloud.net
 XVISION_EMAIL=
 XVISION_PASSWORD=
 NEXT_PUBLIC_MAPBOX_TOKEN=

@@ -4,7 +4,7 @@ async function xvisionRequest<T>(method: "GET" | "POST", path: string, body?: un
   const send = (token: string) =>
     fetch(`${process.env.XVISION_API_URL}${path}`, {
       method,
-      headers: body === undefined ? { token } : { token, "Content-Type": "application/json" },
+      headers: body === undefined ? { SessionKey: token } : { SessionKey: token, "Content-Type": "application/json" },
       body: body === undefined ? undefined : JSON.stringify(body),
     });
 

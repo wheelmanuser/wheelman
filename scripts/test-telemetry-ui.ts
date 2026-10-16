@@ -1,12 +1,47 @@
 // Run: npx tsx --test scripts/test-telemetry-ui.ts
 import test from "node:test";
 import assert from "node:assert/strict";
-import { summarizeMilEvents } from "../lib/xvision/events";
+import { buildMilEventsPath, formatXVisionDateTime, summarizeMilEvents } from "../lib/xvision/events";
 import { parseEventTime } from "../supabase/functions/sync-telemetry/parse";
 import { formatDeviceBattery, formatFuelLevel, formatMpg, formatVolts } from "../lib/telemetry-display";
 import { formatDistance } from "../lib/format-distance";
 
 const NOW = Date.parse("2026-10-20T00:00:00Z");
+
+test("GetEvents path carries a 30-day FromDateTime/ToDateTime window", () => {
+  const path = buildMilEventsPath("obj-1/x", NOW);
+  assert.equal(
+    path,
+    "/Data/GetEvents?ObjectID=obj-1%2Fx&Events=MIL&FromDateTime=2026-09-20%2000%3A00%3A00&ToDateTime=2026-10-20%2000%3A00%3A00",
+  );
+  const params = new URL(`https://x${path}`).searchParams;
+  assert.equal(params.get("FromDateTime"), "2026-09-20 00:00:00");
+  assert.equal(params.get("ToDateTime"), "2026-10-20 00:00:00");
+  assert.equal(params.get("Events"), "MIL");
+});
+
+test("xVision datetime format is YYYY-MM-DD HH:MM:SS with no ms or zone", () => {
+  assert.equal(formatXVisionDateTime(new Date("2026-03-05T07:08:09.456Z")), "2026-03-05 07:08:09");
+});
+
+test("EventTime is read first, falling back to DateTime", () => {
+  assert.equal(
+    summarizeMilEvents([{ EventType: "MIL", EventTime: "2026-10-12T00:00:00Z", DateTime: "2026-10-01T00:00:00Z" }], NOW)
+      .lastEventAt,
+    "2026-10-12T00:00:00.000Z",
+  );
+  assert.equal(
+    summarizeMilEvents([{ EventType: "MIL", DateTime: "2026-10-01T00:00:00Z" }], NOW).lastEventAt,
+    "2026-10-01T00:00:00.000Z",
+  );
+});
+
+test("an event whose EventTime is stale is dropped even if DateTime is recent", () => {
+  assert.equal(
+    summarizeMilEvents([{ EventType: "MIL", EventTime: "2026-08-01T00:00:00Z", DateTime: "2026-10-10T00:00:00Z" }], NOW).milOn,
+    false,
+  );
+});
 
 test("no MIL events -> not on", () => {
   assert.deepEqual(summarizeMilEvents([], NOW), { milOn: false, lastEventAt: null });

@@ -129,7 +129,9 @@ lib/
   format-distance.ts           — formatDistance(), formatDistanceUnit()
   xvision/
     auth.ts                 — getXVisionToken(), refreshXVisionToken() (in-memory token cache)
-    client.ts               — xvisionGet<T>(), xvisionPost<T>() (SessionKey header; retry once on 401)
+    client.ts               — xvisionGet<T>(), xvisionPost<T>() (SessionKey header; retry once on expiry)
+    devices.ts              — getXVisionCustomerId(), getXVisionDevices(), toDeviceOption()
+    types.ts                — XVisionDeviceOption (client-safe type)
 
 contexts/
   UserSettingsContext.tsx   — reactive settings (theme, units, avatar)
@@ -149,14 +151,16 @@ supabase/
 ---
 
 ## xVision / Telematics API
-- **Base URL:** `https://api-dev.xvisioncloud.net` (NOT `app-dev.xvisioncloud.com` — that host serves the web app, and `/User/Login` there returns HTML / 405)
+- **Base URL:** `https://api.xvisioncloud.net` (PRODUCTION — real devices live here). `https://api-dev.xvisioncloud.net` is the dev API; `app-dev.xvisioncloud.com` serves the web app only (`/User/Login` there returns HTML / 405). Dev and prod use separate accounts.
 - **Auth:** POST `/User/Login` with body `{ Email, Password }` (capitalized) → returns `{ access, refresh, UserID, ... }`. Requests send the **access** token in a `SessionKey` header.
 - **Refresh:** `GET /User/RefreshTokens` with headers `SessionKey` and `RefreshKey` both set to the **refresh** token → returns a new `{ access, refresh }`.
-- **Expired session:** signaled in the response body as `"SessionKey expired."`. HTTP status unconfirmed — other auth errors (e.g. "Not authorized.") come back as 400, so don't assume 401.
-- **Token cache:** `lib/xvision/auth.ts` caches tokens in memory (55 min TTL, 1 min buffer); `client.ts` refreshes and retries once on 401.
-- **Key endpoint:** `GET /Device/GetDevices` → returns Speed, Lat, Lng, Address, IsOnline, Ignition, LastContact per device
+- **Expired session:** HTTP 400 with body `"SessionKey expired."` (other auth errors like "Not authorized." are also 400). `client.ts` retries once after refresh on 401 OR 400 + that message.
+- **Token cache:** `lib/xvision/auth.ts` caches tokens in memory (55 min TTL, 1 min buffer).
+- **Customer scoping:** `GET /Customer/GetCustomers` → customer ID; `lib/xvision/devices.ts` uses it automatically if exactly one customer comes back (else set optional `XVISION_CUSTOMER_ID`).
+- **Key endpoint:** `GET /Device/GetDevices?CustomerID=<id>` → per device: ObjectID (xVision UUID), IMEI, SerialNo, VIN, DeviceName, Speed, Lat, Lng, Address, IsOnline (1/0), Ignition (0/1), LastContact (`MM/DD/YYYY hh:mm:ss AM`, no timezone — assumed UTC, TODO confirm with xVision)
+- **Device linking:** the link drawer loads `/api/xvision/devices` (auth required) and shows a dropdown; a device whose VIN matches the vehicle is preselected. Stores ObjectID + IMEI in `vehicle_devices`. Note: this lists every device on the shared xVision account to any signed-in user.
 - **Credentials:** stored in `.env.local` as `XVISION_API_URL`, `XVISION_EMAIL`, `XVISION_PASSWORD`
-- **Status:** Login + GetDevices verified live (returns `[]` — the account has no devices yet). Test with `npx tsx --env-file=.env.local scripts/test-xvision.ts`. Flow inferred from the xVision web app's own client, not official docs.
+- **Status:** Login/refresh verified on the dev API. Prod host + CustomerID flow implemented and mock-tested; needs a live run with prod credentials: `npx tsx --env-file=.env.local scripts/test-xvision.ts`. Flow inferred from the xVision web app's own client, not official docs.
 
 ---
 
@@ -178,7 +182,7 @@ supabase/
 NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=https://wheelman.vercel.app
-XVISION_API_URL=https://api-dev.xvisioncloud.net
+XVISION_API_URL=https://api.xvisioncloud.net
 XVISION_EMAIL=
 XVISION_PASSWORD=
 NEXT_PUBLIC_MAPBOX_TOKEN=

@@ -19,6 +19,17 @@ import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import { DTCBadge } from "@/components/telematics/DTCBadge";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
+import type { XVisionDeviceOption } from "@/lib/xvision/types";
+
+function normalizeVin(vin: string | null | undefined): string {
+  return (vin ?? "").trim().toUpperCase();
+}
+
+function deviceOptionLabel(d: XVisionDeviceOption): string {
+  const car = [d.vehicleYear, d.vehicleMake, d.vehicleModel].filter(Boolean).join(" ");
+  const last4 = d.imei ? ` · IMEI …${d.imei.slice(-4)}` : "";
+  return `${d.deviceName ?? "Unnamed device"} — ${car || "No vehicle info"}${last4}`;
+}
 
 const VehicleMap = dynamic(
   () => import("@/components/telematics/VehicleMap").then((m) => m.VehicleMap),
@@ -68,9 +79,9 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
   const [doneSaving, setDoneSaving] = useState(false);
   const [doneError, setDoneError] = useState<string | null>(null);
   const [linkDrawerOpen, setLinkDrawerOpen] = useState(false);
-  const [objectId, setObjectId] = useState("");
-  const [deviceName, setDeviceName] = useState("");
-  const [imei, setImei] = useState("");
+  const [availableDevices, setAvailableDevices] = useState<XVisionDeviceOption[]>([]);
+  const [devicesLoading, setDevicesLoading] = useState(false);
+  const [selectedObjectId, setSelectedObjectId] = useState("");
   const [linking, setLinking] = useState(false);
   const [linkError, setLinkError] = useState<string | null>(null);
   const [telemetry, setTelemetry] = useState<VehicleTelemetry | null>(null);
@@ -335,13 +346,32 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
     return parts.length > 0 ? parts.join(" · ") : "—";
   };
 
-  const openLinkDrawer = () => {
-    setObjectId("");
-    setDeviceName("");
-    setImei("");
+  const openLinkDrawer = async () => {
+    setAvailableDevices([]);
+    setSelectedObjectId("");
     setLinkError(null);
     setLinkDrawerOpen(true);
+    setDevicesLoading(true);
+    try {
+      const res = await fetch("/api/xvision/devices");
+      const payload = (await res.json()) as { devices?: XVisionDeviceOption[]; error?: string };
+      if (!res.ok || !payload.devices) {
+        throw new Error(payload.error ?? "Could not load devices");
+      }
+      setAvailableDevices(payload.devices);
+      const vin = normalizeVin(vehicle.vin);
+      const match = vin ? payload.devices.find((d) => normalizeVin(d.vin) === vin) : undefined;
+      if (match) setSelectedObjectId(match.objectId);
+    } catch (err) {
+      setLinkError(err instanceof Error ? err.message : "Could not load devices");
+    } finally {
+      setDevicesLoading(false);
+    }
   };
+
+  const selectedDevice = availableDevices.find((d) => d.objectId === selectedObjectId);
+  const selectedVinMatches =
+    !!normalizeVin(vehicle.vin) && normalizeVin(selectedDevice?.vin) === normalizeVin(vehicle.vin);
 
   const closeLinkDrawer = () => {
     setLinkDrawerOpen(false);
@@ -349,8 +379,9 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
   };
 
   const handleLinkDevice = async () => {
-    if (!objectId.trim()) {
-      setLinkError("Object ID is required.");
+    const selected = availableDevices.find((d) => d.objectId === selectedObjectId);
+    if (!selected) {
+      setLinkError("Select a device to link.");
       return;
     }
     setLinking(true);
@@ -367,9 +398,9 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
     const { error } = await supabase.from("vehicle_devices").insert({
       vehicle_id: vehicle.id,
       user_id: user.id,
-      object_id: objectId.trim(),
-      device_name: deviceName.trim() || null,
-      imei: imei.trim() || null,
+      object_id: selected.objectId,
+      device_name: selected.deviceName,
+      imei: selected.imei,
     });
 
     if (error) {
@@ -1008,40 +1039,37 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
               }}
             >
               <label className="block text-sm">
-                <span className="text-wm-text2">Object ID</span>
-                <input
-                  className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
-                  placeholder="e.g. OBJ-12345"
-                  value={objectId}
-                  onChange={(e) => setObjectId(e.target.value)}
-                />
+                <span className="text-wm-text2">WhereQube Device</span>
+                <select
+                  className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text disabled:opacity-60"
+                  value={selectedObjectId}
+                  onChange={(e) => setSelectedObjectId(e.target.value)}
+                  disabled={devicesLoading || availableDevices.length === 0}
+                >
+                  <option value="">
+                    {devicesLoading
+                      ? "Loading devices..."
+                      : availableDevices.length === 0
+                      ? "No devices available"
+                      : "Select a device..."}
+                  </option>
+                  {availableDevices.map((d) => (
+                    <option key={d.objectId} value={d.objectId}>
+                      {deviceOptionLabel(d)}
+                    </option>
+                  ))}
+                </select>
               </label>
 
-              <label className="block text-sm">
-                <span className="text-wm-text2">Device Name (optional)</span>
-                <input
-                  className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
-                  placeholder="e.g. WhereQube #1"
-                  value={deviceName}
-                  onChange={(e) => setDeviceName(e.target.value)}
-                />
-              </label>
-
-              <label className="block text-sm">
-                <span className="text-wm-text2">IMEI (optional)</span>
-                <input
-                  className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text"
-                  placeholder="e.g. 356938035643809"
-                  value={imei}
-                  onChange={(e) => setImei(e.target.value)}
-                />
-              </label>
+              {selectedVinMatches && (
+                <p className="text-xs text-wm-text3">This device&apos;s VIN matches this vehicle.</p>
+              )}
 
               {linkError && <p className="text-sm text-wm-red">{linkError}</p>}
 
               <button
                 type="submit"
-                disabled={linking}
+                disabled={linking || devicesLoading}
                 className="mt-auto rounded-sm border border-wm-accent bg-wm-accent-dark py-2 text-xs uppercase tracking-wider text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
               >
                 {linking ? "Linking..." : "Link Device"}

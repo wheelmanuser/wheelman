@@ -1,10 +1,16 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { toTelemetryRow } from "./parse.ts";
 
 const XVISION_API_URL = Deno.env.get("XVISION_API_URL")!;
 const XVISION_EMAIL = Deno.env.get("XVISION_EMAIL")!;
 const XVISION_PASSWORD = Deno.env.get("XVISION_PASSWORD")!;
+const XVISION_CUSTOMER_ID = Deno.env.get("XVISION_CUSTOMER_ID");
 
 type Tokens = { access: string; refresh: string };
+
+function json(body: unknown, status: number): Response {
+  return new Response(JSON.stringify(body), { status });
+}
 
 function parseTokens(data: any): Tokens {
   const access = data?.access ?? data?.Access;
@@ -39,16 +45,49 @@ async function sessionExpired(res: Response): Promise<boolean> {
   return (await res.clone().text()).includes("SessionKey expired");
 }
 
-async function getDevices(tokens: Tokens): Promise<any[]> {
+async function xvisionGet(path: string, tokens: Tokens): Promise<any> {
   const call = (access: string) =>
-    fetch(`${XVISION_API_URL}/Device/GetDevices`, { headers: { SessionKey: access } });
+    fetch(`${XVISION_API_URL}${path}`, { headers: { SessionKey: access } });
 
   let res = await call(tokens.access);
   if (await sessionExpired(res)) {
-    res = await call((await refreshTokens(tokens.refresh)).access);
+    const fresh = await refreshTokens(tokens.refresh);
+    tokens.access = fresh.access;
+    tokens.refresh = fresh.refresh;
+    res = await call(fresh.access);
   }
-  if (!res.ok) throw new Error(`GetDevices failed: ${await res.text()}`);
+  if (!res.ok) throw new Error(`xVision GET ${path} failed: ${await res.text()}`);
   return res.json();
+}
+
+function asList(payload: any): any[] {
+  if (Array.isArray(payload)) return payload;
+  for (const key of ["data", "Data", "Customers", "Devices"]) {
+    if (Array.isArray(payload?.[key])) return payload[key];
+  }
+  return [];
+}
+
+async function getCustomerId(tokens: Tokens): Promise<string> {
+  if (XVISION_CUSTOMER_ID) return XVISION_CUSTOMER_ID;
+  const customers = asList(await xvisionGet("/Customer/GetCustomers", tokens));
+  if (customers.length === 0) throw new Error("xVision account has no customers");
+  if (customers.length > 1) {
+    throw new Error(`xVision account has ${customers.length} customers; set XVISION_CUSTOMER_ID`);
+  }
+  const c = customers[0];
+  const id = c.CustomerID ?? c.CustomerId ?? c.ID ?? c.Id;
+  if (id === undefined || id === null || id === "") {
+    throw new Error("xVision customer record has no CustomerID field");
+  }
+  return String(id);
+}
+
+async function getDevices(tokens: Tokens): Promise<any[]> {
+  const customerId = await getCustomerId(tokens);
+  return asList(
+    await xvisionGet(`/Device/GetDevices?CustomerID=${encodeURIComponent(customerId)}`, tokens),
+  );
 }
 
 Deno.serve(async () => {
@@ -62,38 +101,33 @@ Deno.serve(async () => {
     .from("vehicle_devices")
     .select("vehicle_id, user_id, object_id");
 
-  if (error) return new Response(JSON.stringify({ error: error.message }), { status: 500 });
-  if (!linkedDevices?.length) return new Response(JSON.stringify({ message: "No linked devices" }), { status: 200 });
+  if (error) return json({ error: error.message }, 500);
+  if (!linkedDevices?.length) return json({ message: "No linked devices" }, 200);
 
-  const tokens = await login();
-  const devices = await getDevices(tokens);
+  let devices: any[];
+  try {
+    const tokens = await login();
+    devices = await getDevices(tokens);
+  } catch (err) {
+    console.error("[sync-telemetry] xVision request failed:", err);
+    return json({ error: err instanceof Error ? err.message : "xVision request failed" }, 502);
+  }
 
   // Match xVision devices to linked vehicles
   const inserts = [];
   for (const linked of linkedDevices) {
     const device = devices.find((d: any) => d.ObjectID === linked.object_id);
     if (!device) continue;
-    inserts.push({
-      vehicle_id: linked.vehicle_id,
-      user_id: linked.user_id,
-      object_id: linked.object_id,
-      speed: device.Speed ?? null,
-      latitude: device.Latitude ?? null,
-      longitude: device.Longitude ?? null,
-      address: device.Address ?? null,
-      altitude: device.Altitude ?? null,
-      heading: device.Heading ?? null,
-      is_online: device.IsOnline === "true" || device.IsOnline === true,
-      ignition: device.Ignition ?? null,
-      vehicle_status: device.VehicleStatus ?? null,
-      last_contact: device.LastContact ?? null,
-      raw: device,
-    });
+    inserts.push(toTelemetryRow(linked, device));
   }
 
   if (inserts.length) {
-    await supabase.from("vehicle_telemetry").insert(inserts);
+    const { error: insertError } = await supabase.from("vehicle_telemetry").insert(inserts);
+    if (insertError) {
+      console.error("[sync-telemetry] insert failed:", insertError);
+      return json({ error: insertError.message }, 500);
+    }
   }
 
-  return new Response(JSON.stringify({ synced: inserts.length }), { status: 200 });
+  return json({ synced: inserts.length }, 200);
 });

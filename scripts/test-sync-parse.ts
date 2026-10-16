@@ -2,8 +2,10 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import {
+  applyObdFallback,
   DEDUPE_FIELDS,
   isDuplicateReading,
+  OBD_FIELDS,
   parseExtraData,
   parseFuelEconomyMpg,
   parseLastContact,
@@ -265,4 +267,86 @@ test("dedupe: fields outside the comparison list do not count", () => {
     ),
     true,
   );
+});
+
+const PREVIOUS_ROW = {
+  ...READING,
+  fuel_economy_mpg: 15.04,
+  device_battery_pct: 100,
+};
+const BASE_LINK = { vehicle_id: "v", user_id: "u", object_id: "o" };
+
+test("OBD fallback: on GetDevice failure, all five OBD fields come from the previous row", () => {
+  const failedRow = toTelemetryRow(BASE_LINK, { Speed: 0 }); // no ExtraData -> nulls
+  assert.equal(failedRow.odometer_miles, null);
+  const result = applyObdFallback(failedRow, true, PREVIOUS_ROW);
+  assert.equal(result.odometer_miles, 4062.5);
+  assert.equal(result.fuel_level_pct, 56);
+  assert.equal(result.input_voltage, 12.3);
+  assert.equal(result.fuel_economy_mpg, 15.04);
+  assert.equal(result.device_battery_pct, 100);
+  assert.equal(OBD_FIELDS.length, 5);
+});
+
+test("OBD fallback: only the OBD fields change; everything else on the row is untouched", () => {
+  const failedRow = toTelemetryRow(BASE_LINK, { Speed: 33, Latitude: 1.5, IsOnline: 1, Ignition: 1 });
+  const result = applyObdFallback(failedRow, true, PREVIOUS_ROW);
+  const nonObd = (r: Record<string, unknown>) =>
+    Object.fromEntries(Object.entries(r).filter(([key]) => !(OBD_FIELDS as readonly string[]).includes(key)));
+  assert.deepEqual(nonObd(result), nonObd(failedRow));
+  for (const field of OBD_FIELDS) assert.equal(result[field], PREVIOUS_ROW[field], field);
+});
+
+test("OBD fallback: a successful GetDevice that lacks keys stays null (no carry-forward)", () => {
+  // XT1P-style success: only InputVoltage present, the rest genuinely missing.
+  const successRow = toTelemetryRow(BASE_LINK, { Speed: 0 }, { InputVoltage: "12.0 V" });
+  const result = applyObdFallback(successRow, false, PREVIOUS_ROW);
+  assert.equal(result.input_voltage, 12);
+  assert.equal(result.odometer_miles, null);
+  assert.equal(result.fuel_level_pct, null);
+  assert.equal(result.fuel_economy_mpg, null);
+  assert.equal(result.device_battery_pct, null);
+  assert.equal(result, successRow, "row returned unchanged");
+});
+
+test("OBD fallback: a successful response with an empty ExtraData object is still genuinely null", () => {
+  const row = toTelemetryRow(BASE_LINK, { Speed: 0 }, {});
+  const result = applyObdFallback(row, false, PREVIOUS_ROW);
+  assert.equal(result.odometer_miles, null);
+  assert.equal(result.input_voltage, null);
+});
+
+test("OBD fallback: with no previous row there is nothing to carry, so values stay null", () => {
+  const failedRow = toTelemetryRow(BASE_LINK, { Speed: 0 });
+  assert.equal(applyObdFallback(failedRow, true, null), failedRow);
+  assert.equal(applyObdFallback(failedRow, true, undefined).odometer_miles, null);
+});
+
+test("OBD fallback: a previous null stays null, never becomes 0", () => {
+  const failedRow = toTelemetryRow(BASE_LINK, { Speed: 0 });
+  const result = applyObdFallback(failedRow, true, { ...PREVIOUS_ROW, odometer_miles: null, fuel_level_pct: undefined });
+  assert.equal(result.odometer_miles, null);
+  assert.equal(result.fuel_level_pct, null);
+  assert.equal(result.input_voltage, 12.3);
+});
+
+test("OBD fallback + dedupe: a GetDevice failure with an otherwise unchanged reading is skipped", () => {
+  const device = {
+    Speed: 0, Latitude: 41.8781, Longitude: -87.6298, IsOnline: 1, Ignition: 0,
+    VehicleStatus: "Parked", LastContact: "10/16/2026 05:40:05 PM",
+  };
+  const failedRow = applyObdFallback(toTelemetryRow(BASE_LINK, device), true, PREVIOUS_ROW);
+  assert.equal(isDuplicateReading(PREVIOUS_ROW, failedRow), true);
+  // Without the fallback the nulls would have looked like a change and produced a spurious row.
+  assert.equal(isDuplicateReading(PREVIOUS_ROW, toTelemetryRow(BASE_LINK, device)), false);
+});
+
+test("OBD fallback + dedupe: a real change still inserts even when OBD values are carried forward", () => {
+  const device = {
+    Speed: 25, Latitude: 41.8781, Longitude: -87.6298, IsOnline: 1, Ignition: 1,
+    VehicleStatus: "Moving", LastContact: "10/16/2026 05:41:05 PM",
+  };
+  const failedRow = applyObdFallback(toTelemetryRow(BASE_LINK, device), true, PREVIOUS_ROW);
+  assert.equal(isDuplicateReading(PREVIOUS_ROW, failedRow), false);
+  assert.equal(failedRow.odometer_miles, 4062.5);
 });

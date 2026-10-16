@@ -168,6 +168,28 @@ export function isDuplicateReading(
   return DEDUPE_FIELDS.every((field) => sameValue(field, previous[field], next[field]));
 }
 
+export const OBD_FIELDS = [
+  "odometer_miles",
+  "fuel_level_pct",
+  "input_voltage",
+  "fuel_economy_mpg",
+  "device_battery_pct",
+] as const;
+
+// Only when GetDevice itself failed: keep the previous row's OBD values instead of writing nulls, so a
+// transient failure neither blanks the tiles nor creates a spurious row. A successful GetDevice that lacks
+// a key is genuine missing data and is left null (obdFailed is false there).
+export function applyObdFallback<T extends Record<string, unknown>>(
+  row: T,
+  obdFailed: boolean,
+  previous: Record<string, unknown> | null | undefined,
+): T {
+  if (!obdFailed || !previous) return row;
+  const carried: Record<string, unknown> = {};
+  for (const field of OBD_FIELDS) carried[field] = previous[field] ?? null;
+  return { ...row, ...carried } as T;
+}
+
 export type LinkedDevice = { vehicle_id: string; user_id: string; object_id: string };
 
 export function toTelemetryRow(linked: LinkedDevice, device: any, extraData?: unknown) {

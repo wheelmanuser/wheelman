@@ -1,5 +1,5 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { DEDUPE_FIELDS, isDuplicateReading, toTelemetryRow } from "./parse.ts";
+import { applyObdFallback, DEDUPE_FIELDS, isDuplicateReading, OBD_FIELDS, toTelemetryRow } from "./parse.ts";
 
 const XVISION_API_URL = Deno.env.get("XVISION_API_URL")!;
 const XVISION_EMAIL = Deno.env.get("XVISION_EMAIL")!;
@@ -121,11 +121,12 @@ Deno.serve(async () => {
     if (device) matched.push({ linked, device });
   }
 
-  // GetDevices omits OBD data; GetDevice returns it under ExtraData. A failure here only costs that
-  // device its OBD columns (they stay null), not the whole sync.
-  const readings = await Promise.all(
+  // GetDevices omits OBD data; GetDevice returns it under ExtraData. A failure here doesn't fail the
+  // sync: that device is flagged and gets its previous OBD values carried forward below.
+  const built = await Promise.all(
     matched.map(async ({ linked, device }) => {
       let extraData: unknown;
+      let obdFailed = false;
       try {
         const detail = await xvisionGet(
           `/Device/GetDevice?ObjectID=${encodeURIComponent(linked.object_id)}`,
@@ -133,20 +134,22 @@ Deno.serve(async () => {
         );
         extraData = (Array.isArray(detail) ? detail[0] : detail)?.ExtraData;
       } catch (err) {
+        obdFailed = true;
         console.error(`[sync-telemetry] GetDevice failed for ${linked.object_id}:`, err);
       }
-      return toTelemetryRow(linked, device, extraData);
+      return { row: toTelemetryRow(linked, device, extraData), obdFailed };
     }),
   );
 
   // Latest stored row per vehicle in a single query (embedded resource, ordered + limited per parent,
   // served by the (vehicle_id, recorded_at desc) index). If it fails, fall back to inserting everything.
   const latestByVehicle = new Map<string, Record<string, unknown>>();
-  if (readings.length) {
+  const latestFields = [...new Set<string>([...DEDUPE_FIELDS, ...OBD_FIELDS])];
+  if (built.length) {
     const { data: latestRows, error: latestError } = await supabase
       .from("vehicles")
-      .select(`id, vehicle_telemetry(${DEDUPE_FIELDS.join(", ")})`)
-      .in("id", readings.map((r) => r.vehicle_id))
+      .select(`id, vehicle_telemetry(${latestFields.join(", ")})`)
+      .in("id", built.map(({ row }) => row.vehicle_id))
       .order("recorded_at", { referencedTable: "vehicle_telemetry", ascending: false })
       .limit(1, { referencedTable: "vehicle_telemetry" });
     if (latestError) {
@@ -159,6 +162,9 @@ Deno.serve(async () => {
     }
   }
 
+  const readings = built.map(({ row, obdFailed }) =>
+    applyObdFallback(row, obdFailed, latestByVehicle.get(row.vehicle_id)),
+  );
   const inserts = readings.filter((r) => !isDuplicateReading(latestByVehicle.get(r.vehicle_id), r));
   const skipped = readings.length - inserts.length;
 

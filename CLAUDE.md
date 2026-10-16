@@ -128,8 +128,8 @@ lib/
   service-schedule-display.ts  — enrichSchedules(), statusToneClass()
   format-distance.ts           — formatDistance(), formatDistanceUnit()
   xvision/
-    auth.ts                 — xvisionLogin()
-    client.ts               — xvisionGet<T>()
+    auth.ts                 — getXVisionToken(), refreshXVisionToken() (in-memory token cache)
+    client.ts               — xvisionGet<T>(), xvisionPost<T>() (retry once on 401)
 
 contexts/
   UserSettingsContext.tsx   — reactive settings (theme, units, avatar)
@@ -150,16 +150,17 @@ supabase/
 
 ## xVision / Telematics API
 - **Base URL:** `https://app-dev.xvisioncloud.com`
-- **Auth:** POST `/User/Login` → returns `access` token. All requests need headers: `apikey` + `token`
+- **Auth:** POST `/User/Login` (email + password) → returns `{ access, refresh }`. Requests send the **refresh** token in a `token` header — no `apikey` header.
+- **Token lifecycle:** `lib/xvision/auth.ts` caches tokens in memory (55 min TTL, 1 min buffer). On a 401, `client.ts` calls `GET /User/RefreshTokens` (current token in `token` header) and retries once.
 - **Key endpoint:** `GET /Device/GetDevices` → returns Speed, Lat, Lng, Address, IsOnline, Ignition, LastContact per device
-- **Credentials:** stored in `.env.local` as `XVISION_API_URL`, `XVISION_API_KEY`, `XVISION_EMAIL`, `XVISION_PASSWORD`
-- **Status:** Auth layer built (`lib/xvision/`). API key pending from xVision team.
+- **Credentials:** stored in `.env.local` as `XVISION_API_URL`, `XVISION_EMAIL`, `XVISION_PASSWORD`
+- **Status:** Auth layer rewritten to the refresh-token flow. Not yet verified against the live API — run `npx tsx --env-file=.env.local scripts/test-xvision.ts` with real credentials.
 
 ---
 
 ## Current Phase
 **Phase 3 — Telematics Integration (active)**
-- WHE-16: xVision API connectivity test — blocked on API key
+- WHE-16: xVision API connectivity test — auth rewritten (no API key needed); awaiting live test with real credentials
 - WHE-17: Supabase schema ✅ done
 - WHE-18: Vehicle data sync (poll/webhook) ✅ done (edge function; deploy + xVision credentials pending)
 - WHE-19: Device linking UI ✅ done
@@ -176,7 +177,6 @@ NEXT_PUBLIC_SUPABASE_URL=
 NEXT_PUBLIC_SUPABASE_ANON_KEY=
 NEXT_PUBLIC_APP_URL=https://wheelman.vercel.app
 XVISION_API_URL=https://app-dev.xvisioncloud.com
-XVISION_API_KEY=
 XVISION_EMAIL=
 XVISION_PASSWORD=
 NEXT_PUBLIC_MAPBOX_TOKEN=

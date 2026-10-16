@@ -1,7 +1,6 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const XVISION_API_URL = Deno.env.get("XVISION_API_URL")!;
-const XVISION_API_KEY = Deno.env.get("XVISION_API_KEY")!;
 const XVISION_EMAIL = Deno.env.get("XVISION_EMAIL")!;
 const XVISION_PASSWORD = Deno.env.get("XVISION_PASSWORD")!;
 
@@ -13,12 +12,13 @@ async function getXVisionToken(): Promise<string> {
   });
   if (!res.ok) throw new Error(`xVision login failed: ${await res.text()}`);
   const data = await res.json();
-  return data.access;
+  if (typeof data?.refresh !== "string") throw new Error("xVision login response missing refresh token");
+  return data.refresh;
 }
 
 async function getDevices(token: string): Promise<any[]> {
   const res = await fetch(`${XVISION_API_URL}/Device/GetDevices`, {
-    headers: { apikey: XVISION_API_KEY, token },
+    headers: { token },
   });
   if (!res.ok) throw new Error(`GetDevices failed: ${await res.text()}`);
   return res.json();

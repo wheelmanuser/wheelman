@@ -104,9 +104,10 @@ Deno.serve(async () => {
   if (error) return json({ error: error.message }, 500);
   if (!linkedDevices?.length) return json({ message: "No linked devices" }, 200);
 
+  let tokens: Tokens;
   let devices: any[];
   try {
-    const tokens = await login();
+    tokens = await login();
     devices = await getDevices(tokens);
   } catch (err) {
     console.error("[sync-telemetry] xVision request failed:", err);
@@ -114,12 +115,29 @@ Deno.serve(async () => {
   }
 
   // Match xVision devices to linked vehicles
-  const inserts = [];
+  const matched = [];
   for (const linked of linkedDevices) {
     const device = devices.find((d: any) => d.ObjectID === linked.object_id);
-    if (!device) continue;
-    inserts.push(toTelemetryRow(linked, device));
+    if (device) matched.push({ linked, device });
   }
+
+  // GetDevices omits OBD data; GetDevice returns it under ExtraData. A failure here only costs that
+  // device its OBD columns (they stay null), not the whole sync.
+  const inserts = await Promise.all(
+    matched.map(async ({ linked, device }) => {
+      let extraData: unknown;
+      try {
+        const detail = await xvisionGet(
+          `/Device/GetDevice?ObjectID=${encodeURIComponent(linked.object_id)}`,
+          tokens,
+        );
+        extraData = (Array.isArray(detail) ? detail[0] : detail)?.ExtraData;
+      } catch (err) {
+        console.error(`[sync-telemetry] GetDevice failed for ${linked.object_id}:`, err);
+      }
+      return toTelemetryRow(linked, device, extraData);
+    }),
+  );
 
   if (inserts.length) {
     const { error: insertError } = await supabase.from("vehicle_telemetry").insert(inserts);

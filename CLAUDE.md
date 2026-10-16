@@ -132,6 +132,8 @@ lib/
     client.ts               — xvisionGet<T>(), xvisionPost<T>() (SessionKey header; retry once on expiry)
     devices.ts              — getXVisionCustomerId(), getXVisionDevices(), toDeviceOption()
     types.ts                — XVisionDeviceOption (client-safe type)
+    events.ts               — getCheckEngineStatus(), summarizeMilEvents() (30-day MIL window)
+  telemetry-display.ts      — formatFuelLevel/Volts/Mpg/DeviceBattery ("—" when null)
 
 contexts/
   UserSettingsContext.tsx   — reactive settings (theme, units, avatar)
@@ -141,6 +143,8 @@ types/
 
 scripts/
   test-xvision.ts           — connectivity test for xVision API
+  test-sync-parse.ts        — node:test: LastContact (Central→UTC), ExtraData parsing   (npx tsx --test scripts/test-sync-parse.ts)
+  test-telemetry-ui.ts      — node:test: MIL summarizing, display formatters            (npx tsx --test scripts/test-telemetry-ui.ts)
 
 supabase/
   functions/
@@ -156,6 +160,8 @@ supabase/
 - **Refresh:** `GET /User/RefreshTokens` with headers `SessionKey` and `RefreshKey` both set to the **refresh** token → returns a new `{ access, refresh }`.
 - **Expired session:** HTTP 400 with body `"SessionKey expired."` (other auth errors like "Not authorized." are also 400). `client.ts` retries once after refresh on 401 OR 400 + that message.
 - **Token cache:** `lib/xvision/auth.ts` caches tokens in memory (55 min TTL, 1 min buffer).
+- **OBD data:** `GetDevices` omits it. `GET /Device/GetDevice?ObjectID=<id>` returns `ExtraData` with string values + units (`Odometer "2346.3 mi"`, `InputVoltage "13.1 V"`, `FuelLevel "58.0 %"`, `FuelEconomy "19.5 MPG"`, `DeviceBattery "100 %"`). Keys vary by model — the XT1P only has `InputVoltage` and `BatteryVoltage` (which is a `%`, so it feeds `device_battery_pct`). `parseExtraData()` in `supabase/functions/sync-telemetry/parse.ts` strips units, converts km→mi, and returns null for missing/unknown values; sync stores them in `vehicle_telemetry.odometer_miles / fuel_level_pct / input_voltage / fuel_economy_mpg / device_battery_pct`. UI shows "—" for null, never 0.
+- **Check engine:** `GET /Data/GetEvents?ObjectID=<id>&Events=MIL` (event fields `EventType`, `DateTime`, `ExtraData.DTCCodes`). The date-range param names are unknown, so `lib/xvision/events.ts` applies the 30-day window itself. Served to the UI via `/api/xvision/check-engine?vehicleId=` (resolves the device server-side).
 - **Customer scoping:** `GET /Customer/GetCustomers` → customer ID; `lib/xvision/devices.ts` uses it automatically if exactly one customer comes back (else set optional `XVISION_CUSTOMER_ID`).
 - **Key endpoint:** `GET /Device/GetDevices?CustomerID=<id>` → per device: ObjectID (xVision UUID), IMEI, SerialNo, VIN, DeviceName, Speed, Lat, Lng, Address, IsOnline (1/0), Ignition (0/1), LastContact (`MM/DD/YYYY hh:mm:ss AM`, no timezone — assumed UTC, TODO confirm with xVision)
 - **Device linking:** the link drawer loads `/api/xvision/devices` (auth required) and shows a dropdown; a device whose VIN matches the vehicle is preselected. Stores ObjectID + IMEI in `vehicle_devices`. Note: this lists every device on the shared xVision account to any signed-in user.
@@ -173,7 +179,7 @@ supabase/
 - WHE-20: Per-vehicle live metrics UI ✅ done
 - WHE-21: Fleet telematics overview ✅ done
 - WHE-22: GPS map view ✅ done (needs `NEXT_PUBLIC_MAPBOX_TOKEN` set)
-- WHE-23: DTC code lookup ✅ done (`lib/dtc-codes.ts`, `components/telematics/DTCBadge.tsx`)
+- WHE-23: DTC lookup — superseded by the Check Engine tile (MIL events). `lib/dtc-codes.ts` and `components/telematics/DTCBadge.tsx` are currently unused.
 
 ---
 

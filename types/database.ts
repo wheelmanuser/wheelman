@@ -176,6 +176,11 @@ export type VehicleTelemetry = {
   ignition: string | null;
   vehicle_status: string | null;
   last_contact: string | null;
+  odometer_miles: number | null;
+  fuel_level_pct: number | null;
+  input_voltage: number | null;
+  fuel_economy_mpg: number | null;
+  device_battery_pct: number | null;
   raw: Json | null;
   recorded_at: string;
 };

@@ -55,6 +55,19 @@ export function parseLastContact(value: unknown): string | null {
   return new Date(chicagoWallClockToUtcMs(wall.getTime())).toISOString();
 }
 
+// Event timestamps: ISO strings keep their own offset (no offset means UTC, unconfirmed); anything else is
+// parsed like LastContact (US Central). Returns null if neither fits.
+export function parseEventTime(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  const v = value.trim();
+  if (/^\d{4}-\d{2}-\d{2}[T ]\d{2}:\d{2}/.test(v)) {
+    const hasOffset = /(Z|[+-]\d{2}:?\d{2})$/i.test(v);
+    const d = new Date(hasOffset ? v.replace(" ", "T") : `${v.replace(" ", "T")}Z`);
+    return Number.isNaN(d.getTime()) ? null : d.toISOString();
+  }
+  return parseLastContact(v);
+}
+
 export function toIsOnline(value: unknown): boolean {
   return value === 1 || value === true || value === "true";
 }
@@ -63,9 +76,69 @@ export function toIgnitionText(value: unknown): string | null {
   return value === null || value === undefined ? null : String(value);
 }
 
+// ExtraData values are strings with units, e.g. "2346.3 mi", "13.1 V", "58.0 %", "19.5 MPG".
+function parseWithUnit(raw: unknown): { value: number; unit: string } | null {
+  if (typeof raw === "number") return Number.isFinite(raw) ? { value: raw, unit: "" } : null;
+  if (typeof raw !== "string") return null;
+  const m = raw.trim().replace(/,/g, "").match(/^(-?\d+(?:\.\d+)?)\s*(.*)$/);
+  if (!m) return null;
+  return { value: Number(m[1]), unit: m[2].trim().toLowerCase() };
+}
+
+function round(n: number, places: number): number {
+  const f = 10 ** places;
+  return Math.round(n * f) / f;
+}
+
+const MILES = ["mi", "mile", "miles"];
+const KM = ["km", "kms", "kilometer", "kilometers", "kilometre", "kilometres"];
+
+// Unknown or missing units return null rather than guessing, so a wrong number is never stored.
+export function parseOdometerMiles(raw: unknown): number | null {
+  const p = parseWithUnit(raw);
+  if (!p) return null;
+  if (MILES.includes(p.unit)) return p.value;
+  if (KM.includes(p.unit)) return round(p.value * 0.621371, 1);
+  return null;
+}
+
+export function parsePercent(raw: unknown, requireUnit = false): number | null {
+  const p = parseWithUnit(raw);
+  if (!p) return null;
+  if (p.unit !== "%" && (requireUnit || p.unit !== "")) return null;
+  return p.value >= 0 && p.value <= 100 ? p.value : null;
+}
+
+export function parseVolts(raw: unknown): number | null {
+  const p = parseWithUnit(raw);
+  if (!p) return null;
+  return ["", "v", "volt", "volts"].includes(p.unit) ? p.value : null;
+}
+
+export function parseFuelEconomyMpg(raw: unknown): number | null {
+  const p = parseWithUnit(raw);
+  if (!p) return null;
+  if (p.unit === "mpg") return p.value;
+  if (p.unit === "km/l") return round(p.value * 2.35215, 2);
+  if ((p.unit === "l/100km" || p.unit === "l/100 km") && p.value > 0) return round(235.215 / p.value, 2);
+  return null;
+}
+
+export function parseExtraData(extra: unknown) {
+  const e = (extra && typeof extra === "object" ? extra : {}) as Record<string, unknown>;
+  return {
+    odometer_miles: parseOdometerMiles(e.Odometer),
+    fuel_level_pct: parsePercent(e.FuelLevel),
+    input_voltage: parseVolts(e.InputVoltage),
+    fuel_economy_mpg: parseFuelEconomyMpg(e.FuelEconomy),
+    // Models without DeviceBattery (e.g. XT1P) report their internal battery as BatteryVoltage in "%".
+    device_battery_pct: parsePercent(e.DeviceBattery) ?? parsePercent(e.BatteryVoltage, true),
+  };
+}
+
 export type LinkedDevice = { vehicle_id: string; user_id: string; object_id: string };
 
-export function toTelemetryRow(linked: LinkedDevice, device: any) {
+export function toTelemetryRow(linked: LinkedDevice, device: any, extraData?: unknown) {
   return {
     vehicle_id: linked.vehicle_id,
     user_id: linked.user_id,
@@ -80,6 +153,7 @@ export function toTelemetryRow(linked: LinkedDevice, device: any) {
     ignition: toIgnitionText(device.Ignition),
     vehicle_status: device.VehicleStatus ?? null,
     last_contact: parseLastContact(device.LastContact),
-    raw: device,
+    ...parseExtraData(extraData),
+    raw: extraData === undefined ? device : { ...device, ExtraData: extraData },
   };
 }

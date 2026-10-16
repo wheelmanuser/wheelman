@@ -17,7 +17,9 @@ import { Icon } from "@/components/ui/Icon";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance, formatDistanceUnit } from "@/lib/format-distance";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
-import { DTCBadge } from "@/components/telematics/DTCBadge";
+import { CheckEngineStatus } from "@/components/telematics/CheckEngineStatus";
+import { useCheckEngine } from "@/components/telematics/useCheckEngine";
+import { formatDeviceBattery, formatFuelLevel, formatMpg, formatVolts } from "@/lib/telemetry-display";
 import { MapErrorBoundary } from "@/components/telematics/MapErrorBoundary";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
 import type { XVisionDeviceOption } from "@/lib/xvision/types";
@@ -445,9 +447,12 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
     return () => clearInterval(interval);
   }, [tab, device, fetchTelemetry]);
 
-  const telemetryRaw = (telemetry?.raw ?? null) as Record<string, unknown> | null;
+  const { results: checkEngineResults, refresh: refreshCheckEngine } = useCheckEngine(
+    [vehicle.id],
+    tab === "telematics" && !!device,
+  );
 
-  const telemetryMetrics = [
+  const telemetryMetrics: { icon: string; label: string; value: string; sub?: string | null }[] = [
     {
       icon: "speed",
       label: "Live Speed",
@@ -456,29 +461,15 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
           ? formatDistance(telemetry.speed, distanceUnit === "km" ? "km" : "miles") + "/h"
           : "— mph",
     },
-    {
-      icon: "local_gas_station",
-      label: "Fuel Level",
-      value: telemetryRaw?.["Fuel"] != null ? `${telemetryRaw["Fuel"]}%` : "—%",
-    },
-    {
-      icon: "thermostat",
-      label: "Engine Temp",
-      value: telemetryRaw?.["EngineTemp"] != null ? `${telemetryRaw["EngineTemp"]}°` : "—°",
-    },
+    { icon: "local_gas_station", label: "Fuel Level", value: formatFuelLevel(telemetry?.fuel_level_pct) },
     {
       icon: "battery_charging_full",
       label: "Battery",
-      value: telemetryRaw?.["Battery"] != null ? `${telemetryRaw["Battery"]} V` : "— V",
+      value: formatVolts(telemetry?.input_voltage),
+      sub: formatDeviceBattery(telemetry?.device_battery_pct),
     },
-    {
-      icon: "route",
-      label: "Odometer",
-      value:
-        telemetry?.speed != null
-          ? formatDistance(Number(telemetryRaw?.["Odometer"] ?? 0), distanceUnit)
-          : "—",
-    },
+    { icon: "route", label: "Odometer", value: formatDistance(telemetry?.odometer_miles, distanceUnit) },
+    { icon: "eco", label: "Fuel Economy", value: formatMpg(telemetry?.fuel_economy_mpg) },
   ];
 
   return (
@@ -708,7 +699,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                   </div>
                   <button
                     type="button"
-                    onClick={fetchTelemetry}
+                    onClick={() => {
+                      fetchTelemetry();
+                      void refreshCheckEngine();
+                    }}
                     disabled={telemetryLoading}
                     className="label-technical border border-wm-accent px-3 py-1 text-xs text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg disabled:opacity-60"
                   >
@@ -717,21 +711,22 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                 </div>
 
                 <div className="mt-6 grid grid-cols-2 gap-4 text-left">
-                  {telemetryMetrics.map(({ icon, label, value }) => (
+                  {telemetryMetrics.map(({ icon, label, value, sub }) => (
                     <div key={label} className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
                       <div className="mb-1 flex items-center gap-2">
                         <Icon name={icon} className="text-wm-accent" size={16} />
                         <span className="label-technical text-wm-text3">{label}</span>
                       </div>
                       <span className="font-headline text-lg text-wm-text2">{value}</span>
+                      {sub && <p className="mt-0.5 text-xs text-wm-text3">{sub}</p>}
                     </div>
                   ))}
                   <div className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
                     <div className="mb-1 flex items-center gap-2">
                       <Icon name="warning_amber" className="text-wm-accent" size={16} />
-                      <span className="label-technical text-wm-text3">DTC Codes</span>
+                      <span className="label-technical text-wm-text3">Check Engine</span>
                     </div>
-                    <DTCBadge raw={telemetryRaw?.["DTCCodes"] as string | string[] | null | undefined} />
+                    <CheckEngineStatus state={checkEngineResults[vehicle.id]} />
                   </div>
                 </div>
 
@@ -760,10 +755,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                   {[
                     { icon: "speed", label: "Live Speed", value: "— mph" },
                     { icon: "local_gas_station", label: "Fuel Level", value: "—%" },
-                    { icon: "thermostat", label: "Engine Temp", value: "—°F" },
                     { icon: "battery_charging_full", label: "Battery", value: "— V" },
                     { icon: "route", label: "Odometer", value: `— ${formatDistanceUnit(distanceUnit)}` },
-                    { icon: "warning_amber", label: "DTC Codes", value: "—" },
+                    { icon: "eco", label: "Fuel Economy", value: "— MPG" },
+                    { icon: "warning_amber", label: "Check Engine", value: "—" },
                   ].map(({ icon, label, value }) => (
                     <div key={label} className="border border-l-4 border-wm-border border-l-wm-accent-dark bg-wm-s1 px-4 py-3">
                       <div className="mb-1 flex items-center gap-2">

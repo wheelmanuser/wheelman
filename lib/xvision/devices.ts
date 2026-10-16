@@ -5,7 +5,7 @@ export type XVisionDevice = Record<string, unknown>;
 
 let customerIdCache: string | null = null;
 
-function extractList(payload: unknown): Record<string, unknown>[] {
+export function extractList(payload: unknown): Record<string, unknown>[] {
   if (Array.isArray(payload)) return payload as Record<string, unknown>[];
   if (payload && typeof payload === "object") {
     const obj = payload as Record<string, unknown>;

@@ -3,10 +3,11 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Icon } from "@/components/ui/Icon";
-import { DTCBadge } from "@/components/telematics/DTCBadge";
+import { CheckEngineStatus } from "@/components/telematics/CheckEngineStatus";
+import { useCheckEngine } from "@/components/telematics/useCheckEngine";
 import { vehicleDisplayName } from "@/lib/vehicle-display";
 import { formatDistance } from "@/lib/format-distance";
-import { parseDTCCodes } from "@/lib/dtc-codes";
+import { formatDeviceBattery, formatFuelLevel, formatMpg, formatVolts } from "@/lib/telemetry-display";
 import { useUserSettings } from "@/contexts/UserSettingsContext";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
 
@@ -18,10 +19,6 @@ type Props = {
   deviceMap: Record<string, VehicleDevice | null>;
 };
 
-function getRaw(telemetry: VehicleTelemetry | null | undefined): Record<string, unknown> | null {
-  return (telemetry?.raw ?? null) as Record<string, unknown> | null;
-}
-
 export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
   const router = useRouter();
   const { settings } = useUserSettings();
@@ -29,9 +26,13 @@ export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
 
   const connectedCount = vehicles.filter((v) => deviceMap[v.id] !== null).length;
   const onlineCount = vehicles.filter((v) => telemetryMap[v.id]?.is_online === true).length;
-  const alertsCount = vehicles.filter(
-    (v) => parseDTCCodes(getRaw(telemetryMap[v.id])?.["DTCCodes"] as string | string[] | null | undefined).length > 0,
-  ).length;
+  const { results: checkEngineResults } = useCheckEngine(
+    vehicles.filter((v) => deviceMap[v.id] !== null).map((v) => v.id),
+  );
+  const alertsCount = vehicles.filter((v) => {
+    const state = checkEngineResults[v.id];
+    return state?.status === "ok" && state.milOn;
+  }).length;
   const allDisconnected = vehicles.length > 0 && vehicles.every((v) => deviceMap[v.id] === null);
 
   return (
@@ -109,34 +110,21 @@ export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
           {vehicles.map((vehicle) => {
             const device = deviceMap[vehicle.id];
             const telemetry = telemetryMap[vehicle.id];
-            const raw = getRaw(telemetry);
-
-            const metrics = [
+            const metrics: { icon: string; label: string; value: string; sub?: string | null }[] = [
               {
                 icon: "speed",
                 label: "Live Speed",
                 value: telemetry?.speed != null ? `${formatDistance(telemetry.speed, distanceUnit)}/h` : "—",
               },
-              {
-                icon: "local_gas_station",
-                label: "Fuel Level",
-                value: raw?.["Fuel"] != null ? `${raw["Fuel"]}%` : "—",
-              },
-              {
-                icon: "thermostat",
-                label: "Engine Temp",
-                value: raw?.["EngineTemp"] != null ? `${raw["EngineTemp"]}°` : "—",
-              },
+              { icon: "local_gas_station", label: "Fuel Level", value: formatFuelLevel(telemetry?.fuel_level_pct) },
               {
                 icon: "battery_charging_full",
                 label: "Battery",
-                value: raw?.["Battery"] != null ? `${raw["Battery"]} V` : "—",
+                value: formatVolts(telemetry?.input_voltage),
+                sub: formatDeviceBattery(telemetry?.device_battery_pct),
               },
-              {
-                icon: "route",
-                label: "Odometer",
-                value: raw?.["Odometer"] != null ? formatDistance(Number(raw["Odometer"]), distanceUnit) : "—",
-              },
+              { icon: "route", label: "Odometer", value: formatDistance(telemetry?.odometer_miles, distanceUnit) },
+              { icon: "eco", label: "Fuel Economy", value: formatMpg(telemetry?.fuel_economy_mpg) },
             ];
 
             return (
@@ -182,21 +170,22 @@ export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
 
                 {/* Metrics grid */}
                 <div className="grid grid-cols-2 gap-px bg-wm-border sm:grid-cols-3">
-                  {metrics.map(({ icon, label, value }) => (
+                  {metrics.map(({ icon, label, value, sub }) => (
                     <div key={label} className="bg-wm-s1 px-4 py-3">
                       <div className="mb-1 flex items-center gap-2">
                         <Icon name={icon} size={14} className="text-wm-accent" />
                         <span className="label-technical text-wm-text3">{label}</span>
                       </div>
                       <span className="font-headline text-lg text-wm-text3">{value}</span>
+                      {sub && <p className="mt-0.5 text-xs text-wm-text3">{sub}</p>}
                     </div>
                   ))}
                   <div className="bg-wm-s1 px-4 py-3">
                     <div className="mb-1 flex items-center gap-2">
                       <Icon name="warning_amber" size={14} className="text-wm-accent" />
-                      <span className="label-technical text-wm-text3">DTC Codes</span>
+                      <span className="label-technical text-wm-text3">Check Engine</span>
                     </div>
-                    <DTCBadge raw={raw?.["DTCCodes"] as string | string[] | null | undefined} />
+                    <CheckEngineStatus state={checkEngineResults[vehicle.id]} />
                   </div>
                 </div>
               </div>

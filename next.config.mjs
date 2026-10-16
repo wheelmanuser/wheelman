@@ -22,7 +22,8 @@ const csp = [
   "font-src 'self' data: https://fonts.gstatic.com",
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-  `connect-src 'self' https://${supabaseHost} https://*.supabase.co https://api.anthropic.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com`,
+  `connect-src 'self' https://${supabaseHost} https://*.supabase.co https://api.anthropic.com https://accounts.google.com https://oauth2.googleapis.com https://www.googleapis.com https://api.mapbox.com https://*.tiles.mapbox.com https://events.mapbox.com`,
+  "worker-src 'self' blob:",
   "frame-src https://accounts.google.com",
   "upgrade-insecure-requests",
 ].join("; ");

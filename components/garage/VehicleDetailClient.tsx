@@ -22,6 +22,7 @@ import { useCheckEngine } from "@/components/telematics/useCheckEngine";
 import { useVisibleInterval } from "@/components/telematics/useVisibleInterval";
 import { formatDeviceBattery, formatFuelLevel, formatMpg, formatVolts } from "@/lib/telemetry-display";
 import { MapErrorBoundary } from "@/components/telematics/MapErrorBoundary";
+import { TripsPanel } from "@/components/telematics/TripsPanel";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
 import type { XVisionDeviceOption } from "@/lib/xvision/types";
 
@@ -40,7 +41,7 @@ const VehicleMap = dynamic(
   { ssr: false },
 );
 
-type Tab = "overview" | "logbook" | "costs" | "telematics";
+type Tab = "overview" | "logbook" | "costs" | "telematics" | "trips";
 
 type ReminderForm = {
   service_name: string;
@@ -517,7 +518,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
       </section>
 
       <div className="mt-8 flex gap-8 border-b border-wm-border overflow-x-auto">
-        {(["overview", "logbook", "costs", "telematics"] as const).map((id) => (
+        {(["overview", "logbook", "costs", "telematics", "trips"] as const).map((id) => (
           <button
             key={id}
             type="button"
@@ -653,6 +654,10 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
 
         {tab === "costs" && (
           <VehicleCostsClient vehicleId={vehicle.id} odometerMiles={vehicle.odometer_miles} />
+        )}
+
+        {tab === "trips" && (
+          <TripsPanel vehicleId={vehicle.id} distanceUnit={distanceUnit} hasDevice={!!device} />
         )}
 
         {tab === "telematics" && (

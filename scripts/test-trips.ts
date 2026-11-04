@@ -128,7 +128,7 @@ test("speed stats: no speed samples -> null, not 0; missing timestamps -> plain 
   assert.equal(tripSpeedStats(noTimes).avgSpeedMph, 30);
 });
 
-test("units: trip distance is taken as miles and speed as mph (inferred from live device Speed)", () => {
+test("units: trip distance is miles and speed is mph (confirmed on real trips)", () => {
   assert.equal(ASSUMED_TRIP_DISTANCE_UNIT, "mi");
   assert.equal(ASSUMED_SPEED_UNIT, "mph");
 });

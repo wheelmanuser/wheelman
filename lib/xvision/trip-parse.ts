@@ -1,9 +1,9 @@
 import { parseEventTime } from "@/supabase/functions/sync-telemetry/parse";
 import type { TripEvent, TripEventCategory, TripPoint, TripSummary } from "./types";
 
-// Unit assumptions — INFERRED, pending scripts/check-xvision-trips.ts on a real trip. xVision returns
-// numbers in the account's display units (Units "mph"): the live device Speed measured 0.68x GPS-derived
-// km/h over 247 driving legs (mph = 0.62, km/h ~ 1.0), so trip speeds are taken as mph and distances as miles.
+// Units CONFIRMED on real trips (2026-11-04, scripts/check-xvision-trips.ts, 3 devices): API distance / GPS
+// path in miles = 1.003, 0.998, 1.002; average point speed ~ path/time in mph; duration is seconds. xVision
+// returns numbers in the account's display units (Units "mph"), so speed is mph and distance is miles.
 export const ASSUMED_TRIP_DISTANCE_UNIT = "mi";
 export const ASSUMED_SPEED_UNIT = "mph";
 
@@ -135,7 +135,7 @@ export function tripSpeedStats(points: TripPoint[]): { maxSpeedMph: number | nul
 
 // Trust the API distance (assumed miles) unless the GPS path says it's off by more than 3x, which means the
 // unit assumption is wrong (e.g. meters); then use the path length. Miles vs km (1.6x) can't be told apart
-// this way because sparse GPS points under-count distance — that's what check-xvision-trips.ts is for.
+// this way, which is why check-xvision-trips.ts exists; it confirmed miles on real trips.
 const MIN_PATH_MILES_TO_CROSS_CHECK = 0.125;
 
 export function resolveTripDistanceMiles(apiDistance: number | null, pathMiles: number | null): number | null {

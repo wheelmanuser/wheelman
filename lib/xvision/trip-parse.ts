@@ -1,10 +1,11 @@
 import { parseEventTime } from "@/supabase/functions/sync-telemetry/parse";
 import type { TripEvent, TripEventCategory, TripPoint, TripSummary } from "./types";
 
-// Unit assumptions (unconfirmed — the verified account has no trips yet). The xVision account reports
-// Units "mph" with a Metric factor of 0.6213712 (km -> mi), so the API's native units look metric.
-export const ASSUMED_TRIP_DISTANCE_UNIT = "km";
-export const ASSUMED_SPEED_UNIT = "km/h";
+// Unit assumptions — INFERRED, pending scripts/check-xvision-trips.ts on a real trip. xVision returns
+// numbers in the account's display units (Units "mph"): the live device Speed measured 0.68x GPS-derived
+// km/h over 247 driving legs (mph = 0.62, km/h ~ 1.0), so trip speeds are taken as mph and distances as miles.
+export const ASSUMED_TRIP_DISTANCE_UNIT = "mi";
+export const ASSUMED_SPEED_UNIT = "mph";
 
 const KM_PER_MILE = 1.609344;
 
@@ -16,10 +17,6 @@ function num(value: unknown): number | null {
 
 function text(value: unknown): string | null {
   return value === null || value === undefined || value === "" ? null : String(value);
-}
-
-export function kmToMiles(km: number | null | undefined): number | null {
-  return km === null || km === undefined ? null : km / KM_PER_MILE;
 }
 
 // Epoch seconds or milliseconds, or a date string (ISO, or the account-timezone "MM/DD/YYYY hh:mm:ss AM").
@@ -66,7 +63,7 @@ export function parseTripPoints(payload: unknown): { points: TripPoint[]; events
       at: parseTripTime(r.dateTS) ?? parseTripTime(r.DateTime),
       lat,
       lng: lng as number,
-      speedKmh: num(r.speed),
+      speedMph: num(r.speed),
       heading: num(r.heading),
     });
   }
@@ -86,7 +83,7 @@ export function parseTripPoints(payload: unknown): { points: TripPoint[]; events
       at: parseTripTime(r.EventTime) ?? parseTripTime(r.DateTime),
       lat,
       lng: lng as number,
-      speedKmh: num(r.Speed),
+      speedMph: num(r.Speed),
     });
   }
   return { points, events };
@@ -107,12 +104,16 @@ export function haversineKm(points: Pick<TripPoint, "lat" | "lng">[]): number {
   return total;
 }
 
+export function haversineMiles(points: Pick<TripPoint, "lat" | "lng">[]): number {
+  return haversineKm(points) / KM_PER_MILE;
+}
+
 // Max speed, and an average weighted by the time each sample covers (samples can be irregular).
 // Falls back to a plain mean when timestamps are missing. Null when there are no speed samples.
-export function tripSpeedStats(points: TripPoint[]): { maxSpeedKmh: number | null; avgSpeedKmh: number | null } {
-  const samples = points.filter((p) => p.speedKmh !== null);
-  if (samples.length === 0) return { maxSpeedKmh: null, avgSpeedKmh: null };
-  const maxSpeedKmh = Math.max(...samples.map((p) => p.speedKmh as number));
+export function tripSpeedStats(points: TripPoint[]): { maxSpeedMph: number | null; avgSpeedMph: number | null } {
+  const samples = points.filter((p) => p.speedMph !== null);
+  if (samples.length === 0) return { maxSpeedMph: null, avgSpeedMph: null };
+  const maxSpeedMph = Math.max(...samples.map((p) => p.speedMph as number));
 
   let weighted = 0;
   let totalSec = 0;
@@ -122,24 +123,26 @@ export function tripSpeedStats(points: TripPoint[]): { maxSpeedKmh: number | nul
     if (!a.at || !b.at) continue;
     const sec = (Date.parse(b.at) - Date.parse(a.at)) / 1000;
     if (sec <= 0) continue;
-    weighted += (((a.speedKmh as number) + (b.speedKmh as number)) / 2) * sec;
+    weighted += (((a.speedMph as number) + (b.speedMph as number)) / 2) * sec;
     totalSec += sec;
   }
-  const avgSpeedKmh =
+  const avgSpeedMph =
     totalSec > 0
       ? weighted / totalSec
-      : samples.reduce((sum, p) => sum + (p.speedKmh as number), 0) / samples.length;
-  return { maxSpeedKmh, avgSpeedKmh };
+      : samples.reduce((sum, p) => sum + (p.speedMph as number), 0) / samples.length;
+  return { maxSpeedMph, avgSpeedMph };
 }
 
-// Trust the API distance (assumed km) unless the GPS path says it's off by more than 3x, which means the
-// unit assumption is wrong (e.g. meters); then use the path length. km vs miles (1.6x) can't be told apart
-// this way because sparse GPS points under-count distance.
-export function resolveTripDistanceKm(apiDistance: number | null, pathKm: number | null): number | null {
-  if (apiDistance === null) return pathKm !== null && pathKm > 0 ? pathKm : null;
-  if (pathKm !== null && pathKm >= 0.2) {
-    const ratio = apiDistance / pathKm;
-    if (ratio > 3 || ratio < 1 / 3) return pathKm;
+// Trust the API distance (assumed miles) unless the GPS path says it's off by more than 3x, which means the
+// unit assumption is wrong (e.g. meters); then use the path length. Miles vs km (1.6x) can't be told apart
+// this way because sparse GPS points under-count distance — that's what check-xvision-trips.ts is for.
+const MIN_PATH_MILES_TO_CROSS_CHECK = 0.125;
+
+export function resolveTripDistanceMiles(apiDistance: number | null, pathMiles: number | null): number | null {
+  if (apiDistance === null) return pathMiles !== null && pathMiles > 0 ? pathMiles : null;
+  if (pathMiles !== null && pathMiles >= MIN_PATH_MILES_TO_CROSS_CHECK) {
+    const ratio = apiDistance / pathMiles;
+    if (ratio > 3 || ratio < 1 / 3) return pathMiles;
   }
   return apiDistance;
 }
@@ -177,14 +180,14 @@ export function summarizeTrip(
   trip: NonNullable<ReturnType<typeof normalizeTrip>>,
   points: TripPoint[] | null,
 ): TripSummary {
-  const pathKm = points && points.length > 1 ? haversineKm(points) : null;
-  const stats = points ? tripSpeedStats(points) : { maxSpeedKmh: null, avgSpeedKmh: null };
+  const pathMiles = points && points.length > 1 ? haversineMiles(points) : null;
+  const stats = points ? tripSpeedStats(points) : { maxSpeedMph: null, avgSpeedMph: null };
   return {
     tripId: trip.tripId,
     startAt: trip.startAt,
     endAt: trip.endAt,
     durationSec: trip.durationSec,
-    distanceKm: resolveTripDistanceKm(trip.apiDistance, pathKm),
+    distanceMiles: resolveTripDistanceMiles(trip.apiDistance, pathMiles),
     ...stats,
   };
 }

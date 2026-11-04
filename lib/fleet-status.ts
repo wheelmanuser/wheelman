@@ -99,7 +99,6 @@ export function filterFleet<T extends Pick<FleetVehicle, "status">>(vehicles: T[
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 const DAY = 24 * HOUR;
-export const STALE_AFTER_MS = 15 * MINUTE;
 
 export function formatLastSeen(iso: string | null | undefined, now: number = Date.now()): string {
   if (!iso) return "Never";
@@ -112,16 +111,10 @@ export function formatLastSeen(iso: string | null | undefined, now: number = Dat
   return `${Math.floor(ago / DAY)}d ago`;
 }
 
-export function isStale(iso: string | null | undefined, now: number = Date.now()): boolean {
-  if (!iso) return true;
-  const at = Date.parse(iso);
-  return Number.isNaN(at) || now - at > STALE_AFTER_MS;
-}
-
-// "Last seen" is only worth showing when the car isn't reporting normally.
-export function showLastSeen(v: Pick<FleetVehicle, "status" | "telemetry">, now: number = Date.now()): boolean {
-  if (v.status === "no_device") return false;
-  return v.status === "offline" || isStale(v.telemetry?.last_contact, now);
+// Dashboard tiles show "Last seen" only for Offline cars; a parked car that simply hasn't reported in a
+// while is still shown as Parked without it. (The live page always shows it.)
+export function showLastSeen(v: Pick<FleetVehicle, "status">): boolean {
+  return v.status === "offline";
 }
 
 function num(value: unknown): number | null {

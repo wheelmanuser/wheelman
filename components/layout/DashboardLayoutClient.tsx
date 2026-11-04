@@ -8,17 +8,12 @@ import { createClient } from "@/lib/supabase/client";
 import { useAuthStore } from "@/stores/authStore";
 import { cn } from "@/lib/utils";
 import { Icon } from "@/components/ui/Icon";
+import { activeNavHref, NAV_ITEMS, pageTitle } from "@/lib/nav";
 import {
   UserSettingsProvider,
   useUserSettings,
   type UserSettings,
 } from "@/contexts/UserSettingsContext";
-
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", iconName: "speed" },
-  { label: "My Garage", href: "/garage", iconName: "directions_car" },
-  { label: "Telematics", href: "/telematics", iconName: "sensors" },
-];
 
 function getInitial(nameOrEmail: string | null | undefined): string {
   if (!nameOrEmail) return "W";
@@ -33,13 +28,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
   const user = useAuthStore((state) => state.user);
   const { settings } = useUserSettings();
 
-  const title = useMemo(() => {
-    if (pathname === "/dashboard") return "Dashboard";
-    if (pathname.startsWith("/garage")) return "My Garage";
-    if (pathname.startsWith("/settings")) return "Settings";
-    if (pathname.startsWith("/telematics")) return "Telematics";
-    return "Wheelman";
-  }, [pathname]);
+  const title = useMemo(() => pageTitle(pathname), [pathname]);
+  const activeHref = activeNavHref(pathname);
 
   const emailFallback = user?.email?.split("@")[0] ?? "Driver";
   const displayName = settings.display_name || emailFallback;
@@ -90,9 +80,8 @@ function LayoutInner({ children }: { children: React.ReactNode }) {
         </div>
 
         <nav className="space-y-0.5">
-          {navItems.map((item) => {
-            const active =
-              pathname === item.href || pathname.startsWith(`${item.href}/`);
+          {NAV_ITEMS.map((item) => {
+            const active = item.href === activeHref;
             return (
               <Link
                 key={item.href}

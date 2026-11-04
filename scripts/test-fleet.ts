@@ -8,16 +8,15 @@ import {
   fleetPins,
   fleetStatus,
   formatLastSeen,
-  isStale,
   isUuid,
   showLastSeen,
   SINGLE_PIN_ZOOM,
-  STALE_AFTER_MS,
   toFleetVehicle,
   type FleetTelemetry,
   type FleetVehicle,
 } from "../lib/fleet-status";
 import { formatIgnition, formatTelemetrySpeed } from "../lib/telemetry-display";
+import { activeNavHref, pageTitle } from "../lib/nav";
 
 const NOW = Date.parse("2026-11-03T18:00:00Z");
 
@@ -119,18 +118,11 @@ test("last seen: relative formatting", () => {
   assert.equal(formatLastSeen(new Date(NOW - 3 * 86_400_000).toISOString(), NOW), "3d ago");
 });
 
-test("last seen: staleness and when to show it", () => {
-  assert.equal(isStale(new Date(NOW - STALE_AFTER_MS).toISOString(), NOW), false);
-  assert.equal(isStale(new Date(NOW - STALE_AFTER_MS - 1).toISOString(), NOW), true);
-  assert.equal(isStale(null, NOW), true);
-  const v = (status: FleetVehicle["status"], minsAgo: number | null) => ({
-    status,
-    telemetry: minsAgo === null ? null : t({ last_contact: new Date(NOW - minsAgo * 60_000).toISOString() }),
-  });
-  assert.equal(showLastSeen(v("parked", 1), NOW), false, "fresh and online");
-  assert.equal(showLastSeen(v("parked", 600), NOW), true, "stale");
-  assert.equal(showLastSeen(v("offline", 1), NOW), true, "offline always shows it");
-  assert.equal(showLastSeen(v("no_device", null), NOW), false);
+test("last seen on dashboard tiles: Offline only, not stale Parked cars", () => {
+  assert.equal(showLastSeen({ status: "offline" }), true);
+  assert.equal(showLastSeen({ status: "parked" }), false, "even if it hasn't reported for hours");
+  assert.equal(showLastSeen({ status: "moving" }), false);
+  assert.equal(showLastSeen({ status: "no_device" }), false);
 });
 
 test("toFleetVehicle: device as object (one-to-one) or array, telemetry as array; name via vehicleDisplayName", () => {
@@ -217,4 +209,25 @@ test("live panel formatting: device speed is mph (verified from fixes); ignition
   assert.equal(formatIgnition("1"), "On");
   assert.equal(formatIgnition("0"), "Off");
   assert.equal(formatIgnition(null), "—");
+});
+
+test("nav: the live location page highlights Dashboard, other garage pages stay on My Garage", () => {
+  assert.equal(activeNavHref("/garage/13d468f3-c79a-42c9-a8b5-45f53018d635/live"), "/dashboard");
+  assert.equal(activeNavHref("/garage/13d468f3-c79a-42c9-a8b5-45f53018d635/live/"), "/dashboard");
+  assert.equal(activeNavHref("/garage/13d468f3-c79a-42c9-a8b5-45f53018d635"), "/garage");
+  assert.equal(activeNavHref("/garage/13d468f3-c79a-42c9-a8b5-45f53018d635/logbook"), "/garage");
+  assert.equal(activeNavHref("/garage"), "/garage");
+  assert.equal(activeNavHref("/garage/add"), "/garage");
+  assert.equal(activeNavHref("/dashboard"), "/dashboard");
+  assert.equal(activeNavHref("/telematics"), "/telematics");
+  assert.equal(activeNavHref("/settings"), null);
+  assert.equal(activeNavHref("/garage-sale"), null, "prefix match needs a path boundary");
+});
+
+test("nav: the header title follows the highlighted item", () => {
+  assert.equal(pageTitle("/garage/13d468f3-c79a-42c9-a8b5-45f53018d635/live"), "Dashboard");
+  assert.equal(pageTitle("/garage/13d468f3-c79a-42c9-a8b5-45f53018d635"), "My Garage");
+  assert.equal(pageTitle("/telematics"), "Telematics");
+  assert.equal(pageTitle("/settings"), "Settings");
+  assert.equal(pageTitle("/other"), "Wheelman");
 });

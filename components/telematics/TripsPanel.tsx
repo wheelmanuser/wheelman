@@ -142,8 +142,8 @@ export function TripsPanel({ vehicleId, distanceUnit, hasDevice }: Props) {
             </div>
             <div className="flex flex-wrap gap-6">
               <Stat label="Duration" value={formatDuration(current.durationSec)} />
-              <Stat label="Distance" value={formatTripDistance(current.distanceKm, distanceUnit)} />
-              <Stat label="Max speed" value={formatSpeed(current.maxSpeedKmh, distanceUnit)} />
+              <Stat label="Distance" value={formatTripDistance(current.distanceMiles, distanceUnit)} />
+              <Stat label="Max speed" value={formatSpeed(current.maxSpeedMph, distanceUnit)} />
             </div>
           </div>
           <MapErrorBoundary>
@@ -208,9 +208,9 @@ export function TripsPanel({ vehicleId, distanceUnit, hasDevice }: Props) {
                           </div>
                         </div>
                         <div className="flex flex-wrap gap-6">
-                          <Stat label="Distance" value={formatTripDistance(trip.distanceKm, distanceUnit)} />
-                          <Stat label="Max" value={formatSpeed(trip.maxSpeedKmh, distanceUnit)} />
-                          <Stat label="Avg" value={formatSpeed(trip.avgSpeedKmh, distanceUnit)} />
+                          <Stat label="Distance" value={formatTripDistance(trip.distanceMiles, distanceUnit)} />
+                          <Stat label="Max" value={formatSpeed(trip.maxSpeedMph, distanceUnit)} />
+                          <Stat label="Avg" value={formatSpeed(trip.avgSpeedMph, distanceUnit)} />
                           <Icon
                             name={open ? "expand_less" : "expand_more"}
                             className="self-center text-wm-text3"

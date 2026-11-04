@@ -3,7 +3,7 @@
 import { xvisionGet } from "../lib/xvision/client";
 import { formatXVisionDateTime } from "../lib/xvision/events";
 import { getXVisionDevices } from "../lib/xvision/devices";
-import { haversineKm, normalizeTrip, parseTripPoints, tripSpeedStats } from "../lib/xvision/trip-parse";
+import { haversineMiles, normalizeTrip, parseTripPoints, tripSpeedStats } from "../lib/xvision/trip-parse";
 
 const DAYS = 30;
 
@@ -28,11 +28,11 @@ async function main() {
     const { points, events } = parseTripPoints(
       await xvisionGet<unknown>(`/Data/GetTripPoints?TripID=${encodeURIComponent(String(sample.tripid))}`),
     );
-    const pathKm = haversineKm(points);
+    const pathMiles = haversineMiles(points);
     const apiDistance = Number(sample.distance);
     console.log(`  points: ${points.length}, events: ${events.length} (${Array.from(new Set(events.map((e) => e.type))).join(", ") || "none"})`);
-    console.log(`  distance: API=${sample.distance}  GPS path=${pathKm.toFixed(3)} km  ratio API/path_km=${(apiDistance / pathKm).toFixed(3)}`);
-    console.log(`    ~1.0 => km, ~0.62 => miles, ~1000 => meters (path under-counts a little)`);
+    console.log(`  distance: API=${sample.distance}  GPS path=${pathMiles.toFixed(3)} mi  ratio API/path_mi=${(apiDistance / pathMiles).toFixed(3)}`);
+    console.log(`    ~1.0 => miles (assumed), ~1.6 => km, ~1609 => meters (the path under-counts a little)`);
     const span = t?.durationSec ?? null;
     console.log(`  duration: API=${sample.duration}  dateEnd-dateStart=${span}s  ratio=${span ? (Number(sample.duration) / span).toFixed(3) : "n/a"}`);
     console.log(`    ~1 => seconds, ~1/60 => minutes, ~1000 => ms`);
@@ -40,9 +40,9 @@ async function main() {
     console.log(`  timezone: parsed dateStart=${t?.startAt}  first point=${first ?? "n/a"}  (should be within a few minutes)`);
     console.log(`            parsed dateEnd=${t?.endAt}    last point=${last ?? "n/a"}`);
     const stats = tripSpeedStats(points);
-    const avgFromDistance = span ? pathKm / (span / 3600) : null;
-    console.log(`  speed: max=${stats.maxSpeedKmh} avg(points)=${stats.avgSpeedKmh?.toFixed(1)}  avg from path/time=${avgFromDistance?.toFixed(1)} km/h`);
-    console.log(`    if avg(points) ~ path/time in km/h, point speeds are km/h; ~0.62x of it => mph`);
+    const avgFromDistance = span ? pathMiles / (span / 3600) : null;
+    console.log(`  speed: max=${stats.maxSpeedMph} avg(points)=${stats.avgSpeedMph?.toFixed(1)}  avg from path/time=${avgFromDistance?.toFixed(1)} mph`);
+    console.log(`    avg(points) ~ path/time => mph (assumed); ~1.6x of it => km/h`);
   }
 }
 main().catch((e) => {

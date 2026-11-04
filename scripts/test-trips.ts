@@ -3,13 +3,15 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   categorizeEvent,
+  ASSUMED_SPEED_UNIT,
+  ASSUMED_TRIP_DISTANCE_UNIT,
   haversineKm,
+  haversineMiles,
   isTripOwnedBy,
-  kmToMiles,
   normalizeTrip,
   parseTripPoints,
   parseTripTime,
-  resolveTripDistanceKm,
+  resolveTripDistanceMiles,
   SAFE_TRIP_ID,
   summarizeTrip,
   tripSpeedStats,
@@ -71,7 +73,7 @@ test("parseTripPoints: drops invalid coordinates, keeps missing speed as null, s
     ],
   });
   assert.equal(points.length, 3);
-  assert.deepEqual(points.map((p) => p.speedKmh), [0, null, 40]);
+  assert.deepEqual(points.map((p) => p.speedMph), [0, null, 40]);
   assert.equal(points[0].at, "2026-10-15T18:47:52.000Z");
 });
 
@@ -89,7 +91,7 @@ test("parseTripPoints: events read EventTime first, fall back to DateTime, and a
   assert.equal(events[0].at, "2026-10-15T18:50:00.000Z");
   assert.equal(events[1].at, "2026-10-15T18:55:00.000Z");
   assert.deepEqual(events.map((e) => e.category), ["braking", "acceleration", "speeding", "other"]);
-  assert.equal(events[2].speedKmh, null);
+  assert.equal(events[2].speedMph, null);
   assert.equal(categorizeEvent("HARD_BRAKE"), "braking");
 });
 
@@ -98,69 +100,86 @@ test("parseTripPoints: empty / malformed payloads yield no points", () => {
   assert.deepEqual(parseTripPoints({ TripPoints: "nope", Events: {} }), { points: [], events: [] });
 });
 
-test("haversine: one degree of latitude is ~111.2 km", () => {
-  const km = haversineKm([
+test("haversine: one degree of latitude is ~111.2 km / ~69.1 mi", () => {
+  const degree = [
     { lat: 41, lng: -87 },
     { lat: 42, lng: -87 },
-  ]);
-  assert.ok(Math.abs(km - 111.2) < 0.1, String(km));
-  assert.equal(haversineKm([{ lat: 41, lng: -87 }]), 0);
+  ];
+  assert.ok(Math.abs(haversineKm(degree) - 111.2) < 0.1, String(haversineKm(degree)));
+  assert.ok(Math.abs(haversineMiles(degree) - 69.09) < 0.05, String(haversineMiles(degree)));
+  assert.equal(haversineMiles([{ lat: 41, lng: -87 }]), 0);
 });
 
 function pt(sec: number, speed: number | null): TripPoint {
-  return { at: new Date(1792090000000 + sec * 1000).toISOString(), lat: 41.9, lng: -87.6, speedKmh: speed, heading: null };
+  return { at: new Date(1792090000000 + sec * 1000).toISOString(), lat: 41.9, lng: -87.6, speedMph: speed, heading: null };
 }
 
 test("speed stats: max and a time-weighted average over irregular samples", () => {
   // 0->60 over 60s, then 60 held for 540s: plain mean of [0,60,60] = 40, time-weighted = 57
   const stats = tripSpeedStats([pt(0, 0), pt(60, 60), pt(600, 60)]);
-  assert.equal(stats.maxSpeedKmh, 60);
-  assert.equal(stats.avgSpeedKmh, 57);
+  assert.equal(stats.maxSpeedMph, 60);
+  assert.equal(stats.avgSpeedMph, 57);
 });
 
 test("speed stats: no speed samples -> null, not 0; missing timestamps -> plain mean", () => {
-  assert.deepEqual(tripSpeedStats([pt(0, null), pt(60, null)]), { maxSpeedKmh: null, avgSpeedKmh: null });
-  assert.deepEqual(tripSpeedStats([]), { maxSpeedKmh: null, avgSpeedKmh: null });
+  assert.deepEqual(tripSpeedStats([pt(0, null), pt(60, null)]), { maxSpeedMph: null, avgSpeedMph: null });
+  assert.deepEqual(tripSpeedStats([]), { maxSpeedMph: null, avgSpeedMph: null });
   const noTimes = [pt(0, 20), pt(1, 40)].map((p) => ({ ...p, at: null }));
-  assert.equal(tripSpeedStats(noTimes).avgSpeedKmh, 30);
+  assert.equal(tripSpeedStats(noTimes).avgSpeedMph, 30);
 });
 
-test("distance: API value (assumed km) is kept when the GPS path roughly agrees", () => {
-  assert.equal(resolveTripDistanceKm(10, 8.5), 10);
-  assert.equal(resolveTripDistanceKm(10, 26), 10);
+test("units: trip distance is taken as miles and speed as mph (inferred from live device Speed)", () => {
+  assert.equal(ASSUMED_TRIP_DISTANCE_UNIT, "mi");
+  assert.equal(ASSUMED_SPEED_UNIT, "mph");
+});
+
+test("distance: API value (assumed miles) is kept when the GPS path roughly agrees", () => {
+  assert.equal(resolveTripDistanceMiles(10, 8.5), 10);
+  assert.equal(resolveTripDistanceMiles(10, 26), 10);
 });
 
 test("distance: an API value off by >3x from the path (e.g. meters) falls back to the path length", () => {
-  assert.equal(resolveTripDistanceKm(12400, 12.1), 12.1);
-  assert.equal(resolveTripDistanceKm(0.002, 2), 2);
+  assert.equal(resolveTripDistanceMiles(12400, 7.6), 7.6);
+  assert.equal(resolveTripDistanceMiles(0.002, 2), 2);
 });
 
 test("distance: missing API value uses the path; nothing usable is null, never 0", () => {
-  assert.equal(resolveTripDistanceKm(null, 3.2), 3.2);
-  assert.equal(resolveTripDistanceKm(null, 0), null);
-  assert.equal(resolveTripDistanceKm(null, null), null);
-  assert.equal(resolveTripDistanceKm(500, 0.1), 500, "too short a path to second-guess the API");
+  assert.equal(resolveTripDistanceMiles(null, 3.2), 3.2);
+  assert.equal(resolveTripDistanceMiles(null, 0), null);
+  assert.equal(resolveTripDistanceMiles(null, null), null);
+  assert.equal(resolveTripDistanceMiles(500, 0.1), 500, "too short a path to second-guess the API");
 });
 
 test("summarizeTrip combines API fields with point-derived stats", () => {
   const trip = normalizeTrip({ tripid: UUID, distance: 1.0, dateStart: "10/15/2026 01:47:52 PM", dateEnd: "10/15/2026 01:57:52 PM" })!;
   const s = summarizeTrip(trip, [pt(0, 30), pt(600, 50)]);
   assert.equal(s.durationSec, 600);
-  assert.equal(s.maxSpeedKmh, 50);
-  assert.equal(s.distanceKm, 1.0);
+  assert.equal(s.maxSpeedMph, 50);
+  assert.equal(s.distanceMiles, 1.0);
   const noPoints = summarizeTrip(trip, null);
-  assert.equal(noPoints.maxSpeedKmh, null);
-  assert.equal(noPoints.distanceKm, 1.0);
+  assert.equal(noPoints.maxSpeedMph, null);
+  assert.equal(noPoints.distanceMiles, 1.0);
 });
 
-test("unit conversion: km to miles and the user's distance setting", () => {
-  assert.equal(kmToMiles(null), null);
-  assert.ok(Math.abs((kmToMiles(16.09344) as number) - 10) < 1e-9);
-  assert.equal(formatTripDistance(16.09344, "miles"), "10.0 mi");
-  assert.equal(formatTripDistance(16.09344, "km"), "16.1 km");
-  assert.equal(formatTripDistance(0.6, "miles"), "0.4 mi", "short trips keep a decimal instead of showing 0");
-  assert.equal(formatSpeed(100, "km"), "100 km/h");
-  assert.equal(formatSpeed(100, "miles"), "62 mph");
+test("unit conversion: miles and mph shown in the user's distance setting", () => {
+  assert.equal(formatTripDistance(10, "miles"), "10.0 mi");
+  assert.equal(formatTripDistance(10, "km"), "16.1 km");
+  assert.equal(formatTripDistance(0.4, "miles"), "0.4 mi", "short trips keep a decimal instead of showing 0");
+  assert.equal(formatSpeed(62, "miles"), "62 mph");
+  assert.equal(formatSpeed(62, "km"), "100 km/h");
+  assert.equal(formatSpeed(0, "miles"), "0 mph", "a real 0 is shown; only missing values are —");
+});
+
+test("summarizeTrip: with no API distance, the GPS path length is used, in miles", () => {
+  const trip = normalizeTrip({ tripid: UUID, dateStart: "10/15/2026 01:47:52 PM", dateEnd: "10/15/2026 02:47:52 PM" })!;
+  const points = [
+    { ...pt(0, 60), lat: 41, lng: -87 },
+    { ...pt(3600, 70), lat: 42, lng: -87 },
+  ];
+  const s = summarizeTrip(trip, points);
+  assert.ok(Math.abs((s.distanceMiles as number) - 69.09) < 0.05, String(s.distanceMiles));
+  assert.equal(s.maxSpeedMph, 70);
+  assert.equal(s.avgSpeedMph, 65);
 });
 
 test("display: missing values render as an em dash, never 0", () => {

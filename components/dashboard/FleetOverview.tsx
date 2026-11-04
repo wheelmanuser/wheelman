@@ -195,7 +195,7 @@ export function FleetOverview({ initialVehicles, initialError = false }: Props) 
                         <ConnectionDot status={v.status} />
                         <p className="truncate text-xs text-wm-text2">{v.telemetry?.address ?? "—"}</p>
                       </div>
-                      {now !== null && showLastSeen(v, now) && (
+                      {now !== null && showLastSeen(v) && (
                         <p className="mt-1 text-xs text-wm-text3">Last seen {formatLastSeen(v.telemetry?.last_contact, now)}</p>
                       )}
                     </Link>

@@ -150,7 +150,7 @@ export function VehicleLiveClient({ initialVehicle }: { initialVehicle: FleetVeh
                   <span className="h-2 w-2 animate-pulse rounded-full bg-wm-red" />
                   <span className="label-technical text-wm-red">Trip in progress</span>
                   <span className="text-wm-text2">
-                    {formatDuration(current.durationSec)} · {formatTripDistance(current.distanceKm, distanceUnit)}
+                    {formatDuration(current.durationSec)} · {formatTripDistance(current.distanceMiles, distanceUnit)}
                   </span>
                 </div>
               )}

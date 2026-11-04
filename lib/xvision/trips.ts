@@ -102,9 +102,9 @@ export async function getCurrentTrip(objectId: string): Promise<CurrentTrip> {
     startAt,
     durationSec:
       startAt && lastAt ? Math.max(0, Math.round((Date.parse(lastAt) - Date.parse(startAt)) / 1000)) : null,
-    distanceKm: summary.distanceKm,
-    maxSpeedKmh: summary.maxSpeedKmh,
-    avgSpeedKmh: summary.avgSpeedKmh,
+    distanceMiles: summary.distanceMiles,
+    maxSpeedMph: summary.maxSpeedMph,
+    avgSpeedMph: summary.avgSpeedMph,
     points,
     events,
   };

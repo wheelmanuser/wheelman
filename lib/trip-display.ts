@@ -1,14 +1,14 @@
 import { formatDistance } from "@/lib/format-distance";
-import { kmToMiles } from "@/lib/xvision/trip-parse";
+import { formatTelemetrySpeed } from "@/lib/telemetry-display";
 
 // Trip distances are often under a mile, so show one decimal rather than rounding them to 0.
-export function formatTripDistance(km: number | null | undefined, unit: string): string {
-  return formatDistance(kmToMiles(km), unit, 1);
+export function formatTripDistance(miles: number | null | undefined, unit: string): string {
+  return formatDistance(miles, unit, 1);
 }
 
-export function formatSpeed(kmh: number | null | undefined, unit: string): string {
-  if (kmh === null || kmh === undefined || !Number.isFinite(kmh)) return "—";
-  return unit === "km" ? `${Math.round(kmh)} km/h` : `${Math.round(kmh * 0.621371)} mph`;
+// Trip speeds are mph, like the live device speed, so they share its formatter.
+export function formatSpeed(mph: number | null | undefined, unit: string): string {
+  return formatTelemetrySpeed(mph, unit);
 }
 
 export function formatDuration(sec: number | null | undefined): string {

@@ -422,7 +422,7 @@ export function DayTimeline({
   const segments = timelineSegments(trips, bounds);
   const ticks = timelineTicks(date, bounds);
   return (
-    <div className="border-t border-wm-border px-4 py-3">
+    <div className="shrink-0 border-t border-wm-border px-4 py-3">
       <div className="relative h-6 bg-wm-s2">
         {segments.map((s) => {
           const trip = trips.find((t) => t.tripId === s.tripId);

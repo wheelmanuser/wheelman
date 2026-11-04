@@ -180,13 +180,15 @@ export function VehicleLiveClient({ initialVehicle }: { initialVehicle: FleetVeh
 
   return (
     <div className="space-y-4">
-      <Link href="/dashboard" className="inline-flex items-center gap-1 text-sm text-wm-text2 hover:text-wm-text">
+      <Link href="/dashboard" className="flex w-fit items-center gap-1 text-sm text-wm-text2 hover:text-wm-text">
         <Icon name="arrow_back" size={16} /> Dashboard
       </Link>
 
-      <div className="grid grid-cols-1 border border-wm-border bg-wm-s1 lg:grid-cols-[minmax(0,1fr)_380px]">
-        <div className="flex flex-col border-b border-wm-border lg:border-b-0 lg:border-r">
-          <div ref={mapBoxRef} className="h-[360px] lg:h-[600px]">
+      {/* Desktop: fill the viewport below the header (4rem), main padding (2 x 1.5rem) and the back link + gap
+          (1.25rem + 1rem) = 9.25rem. The map flexes, the timeline stays under it, the side panel scrolls. */}
+      <div className="grid grid-cols-1 border border-wm-border bg-wm-s1 lg:h-[calc(100vh-9.25rem)] lg:min-h-[520px] lg:grid-cols-[minmax(0,1fr)_380px] lg:grid-rows-[minmax(0,1fr)]">
+        <div className="flex flex-col border-b border-wm-border lg:min-h-0 lg:border-b-0 lg:border-r">
+          <div ref={mapBoxRef} className="h-[360px] lg:h-auto lg:min-h-0 lg:flex-1">
             {hasDevice ? (
               <MapErrorBoundary>
                 <LiveMap
@@ -218,7 +220,7 @@ export function VehicleLiveClient({ initialVehicle }: { initialVehicle: FleetVeh
           )}
         </div>
 
-        <aside className="space-y-4 p-5 lg:max-h-[660px] lg:overflow-y-auto">
+        <aside className="space-y-4 p-5 lg:min-h-0 lg:overflow-y-auto">
           <div>
             <div className="flex items-start justify-between gap-2">
               <h2 className="font-headline text-2xl font-light tracking-wide text-wm-text">{vehicle.name}</h2>

@@ -26,6 +26,9 @@ type Props = {
 
 const LIVE_ZOOM = 15;
 const ARROW_IMAGE = "route-arrow";
+// Mapbox's default pin is 41px tall and anchored at its tip, so it extends that far above the point.
+const PIN_HEIGHT = 41;
+const FIT_MARGIN = 40;
 
 function styleVehicleMarker(el: HTMLDivElement, status: FleetStatus, name: string) {
   el.style.width = "20px";
@@ -78,6 +81,7 @@ export function LiveMap({ position, name, status, route, trip, focus, onReturnTo
   const vehicleElRef = useRef<HTMLDivElement | null>(null);
   const tripMarkersRef = useRef<mapboxgl.Marker[]>([]);
   const focusMarkerRef = useRef<mapboxgl.Marker | null>(null);
+  const returnButtonRef = useRef<HTMLButtonElement>(null);
   const loadedRef = useRef(false);
 
   const latest = useRef({ position, name, status, route, trip });
@@ -120,8 +124,15 @@ export function LiveMap({ position, name, status, route, trip, focus, onReturnTo
       if (fit) {
         const bounds = new mapboxgl.LngLatBounds();
         pts.forEach((p) => bounds.extend([p.lng, p.lat]));
-        // Extra top padding keeps the route clear of the "Return to current location" button.
-        map.fitBounds(bounds, { padding: { top: 72, bottom: 40, left: 40, right: 40 }, maxZoom: 16, duration: 600 });
+        // Fit below the "Return to current location" button: the top padding leaves room for the button plus a
+        // full pin, so no start/end/event pin is drawn underneath it.
+        const button = returnButtonRef.current;
+        const buttonBottom = button ? button.offsetTop + button.offsetHeight : 44;
+        map.fitBounds(bounds, {
+          padding: { top: buttonBottom + PIN_HEIGHT + 10, bottom: FIT_MARGIN, left: FIT_MARGIN, right: FIT_MARGIN },
+          maxZoom: 16,
+          duration: 600,
+        });
       }
     } else {
       (map.getSource("trip-route") as mapboxgl.GeoJSONSource).setData(routeData([]));
@@ -269,6 +280,7 @@ export function LiveMap({ position, name, status, route, trip, focus, onReturnTo
       {trip && (
         <button
           type="button"
+          ref={returnButtonRef}
           onClick={onReturnToLive}
           className="label-technical absolute left-3 top-3 z-10 inline-flex items-center gap-1 border border-wm-accent bg-wm-bg/90 px-3 py-1.5 text-wm-accent shadow-lg transition-colors hover:bg-wm-accent hover:text-wm-bg"
         >

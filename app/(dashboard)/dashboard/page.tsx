@@ -6,6 +6,8 @@ import { formatDistance } from "@/lib/format-distance";
 import { createClient } from "@/lib/supabase/server";
 import { NotificationBell } from "@/components/layout/NotificationBell";
 import { LogbookPickerModal } from "@/components/dashboard/LogbookPickerModal";
+import { FleetOverview } from "@/components/dashboard/FleetOverview";
+import { loadFleet } from "@/lib/fleet";
 import type { ServiceSchedule, UserSettings, Vehicle } from "@/types/database";
 export const dynamic = "force-dynamic";
 
@@ -127,52 +129,15 @@ async function GreetingHeader() {
   );
 }
 
-async function GarageSection({ distanceUnit }: { distanceUnit: string }) {
+// Replaces the old "Your Garage" cards: every vehicle with its latest stored telemetry, on a map.
+async function FleetSection() {
   const supabase = createClient();
-  const { data } = await supabase
-    .from("vehicles")
-    .select("id,year,make,model,nickname,odometer_miles,is_primary")
-    .order("created_at", { ascending: false });
-  const vehicles = (data ?? []) as VehicleRow[];
-  const shown = vehicles.slice(0, 3);
-
-  return (
-    <section className="border border-wm-border border-l-4 border-l-wm-accent-dark bg-wm-s1 p-5">
-      <div className="mb-4 flex items-center justify-between">
-        <h3 className="label-technical text-wm-text3">Your Garage</h3>
-        {vehicles.length > 3 && (
-          <Link href="/garage" className="label-technical text-wm-accent hover:text-wm-text">
-            View all →
-          </Link>
-        )}
-      </div>
-      {shown.length === 0 ? (
-        <Link
-          href="/garage/add"
-          className="block border border-dashed border-wm-border bg-wm-s2 p-4 text-sm text-wm-text2 hover:bg-wm-s3"
-        >
-          Add your first vehicle
-        </Link>
-      ) : (
-        <div className="grid gap-3 sm:grid-cols-3">
-          {shown.map((v) => (
-            <Link
-              key={v.id}
-              href={`/garage/${v.id}`}
-              className="border border-wm-border border-l-2 border-l-wm-accent-dark bg-wm-s2 p-3 transition-colors hover:border-l-wm-gold"
-            >
-              <p className="font-headline text-base font-medium text-wm-text">
-                {vehicleDisplayName(v)}
-              </p>
-              <p className="mt-1 text-xs text-wm-text2">
-                {v.odometer_miles != null ? formatDistance(v.odometer_miles, distanceUnit) : "Odometer —"}
-              </p>
-            </Link>
-          ))}
-        </div>
-      )}
-    </section>
-  );
+  try {
+    return <FleetOverview initialVehicles={await loadFleet(supabase)} />;
+  } catch (err) {
+    console.error("[dashboard] fleet load failed:", err);
+    return <FleetOverview initialVehicles={[]} initialError />;
+  }
 }
 
 async function RecentActivitySection() {
@@ -456,7 +421,7 @@ export default async function DashboardPage() {
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>
-        <GarageSection distanceUnit={distanceUnit} />
+        <FleetSection />
       </Suspense>
 
       <Suspense fallback={<SectionSkeleton />}>

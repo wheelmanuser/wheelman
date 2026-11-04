@@ -67,13 +67,14 @@ type Props = {
   hasDevice: boolean;
   device: VehicleDevice | null;
   initialSchedules: ScheduleWithPct[];
+  initialTab?: Tab;
 };
 
-export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedules }: Props) {
+export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedules, initialTab = "overview" }: Props) {
   const router = useRouter();
   const { settings } = useUserSettings();
   const distanceUnit = settings.distance_unit ?? "miles";
-  const [tab, setTab] = useState<Tab>("overview");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [editingSchedule, setEditingSchedule] = useState<ScheduleWithPct | null>(null);
   const [schedules, setSchedules] = useState<ScheduleWithPct[]>(initialSchedules);

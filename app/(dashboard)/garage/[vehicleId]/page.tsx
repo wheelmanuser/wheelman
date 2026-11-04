@@ -8,9 +8,13 @@ export const dynamic = "force-dynamic";
 
 type PageProps = {
   params: { vehicleId: string };
+  searchParams: { tab?: string };
 };
 
-export default async function VehicleDetailPage({ params }: PageProps) {
+const TABS = ["overview", "logbook", "costs", "telematics", "trips"] as const;
+type Tab = (typeof TABS)[number];
+
+export default async function VehicleDetailPage({ params, searchParams }: PageProps) {
   const supabase = createClient();
 
   const { data: vehicle, error: vehicleError } = await supabase
@@ -49,6 +53,7 @@ export default async function VehicleDetailPage({ params }: PageProps) {
       hasDevice={hasDevice}
       device={device}
       initialSchedules={enriched}
+      initialTab={TABS.find((t): t is Tab => t === searchParams.tab) ?? "overview"}
     />
   );
 }

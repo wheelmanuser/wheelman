@@ -1,3 +1,5 @@
+import { centralDayBounds } from "@/lib/central-day";
+import { tripsStartingIn } from "@/lib/trip-day";
 import { createTtlCache } from "@/lib/ttl-cache";
 import { xvisionGet } from "./client";
 import { formatXVisionDateTime } from "./events";
@@ -15,25 +17,39 @@ const pointsCache = createTtlCache<ParsedPoints>(TTL_MS);
 const summariesCache = createTtlCache<TripSummary[]>(TTL_MS);
 const currentCache = createTtlCache<CurrentTrip>(TTL_MS);
 
-// The request window is padded by a day on each side because the timezone xVision applies to
+async function fetchTripsInWindow(objectId: string, fromMs: number, toMs: number): Promise<NormalizedTrip[]> {
+  const payload = await xvisionGet<unknown>(
+    `/Data/GetTrips?ObjectID=${encodeURIComponent(objectId)}` +
+      `&FromDateTime=${encodeURIComponent(formatXVisionDateTime(new Date(fromMs)))}` +
+      `&ToDateTime=${encodeURIComponent(formatXVisionDateTime(new Date(toMs)))}`,
+  );
+  return (Array.isArray(payload) ? payload : [])
+    .map((t) => (t && typeof t === "object" ? normalizeTrip(t as Record<string, unknown>) : null))
+    .filter((t): t is NormalizedTrip => t !== null)
+    .sort((a, b) => (b.startAt ?? "").localeCompare(a.startAt ?? ""));
+}
+
+// Request windows are padded by a day on each side because the timezone xVision applies to
 // FromDateTime/ToDateTime is undocumented; trips are then filtered precisely on their parsed start time.
 export async function getDeviceTrips(objectId: string, days: number, now = Date.now()): Promise<NormalizedTrip[]> {
   const key = `${objectId}:${days}`;
   const cached = tripsCache.get(key);
   if (cached) return cached;
-
-  const from = formatXVisionDateTime(new Date(now - (days + 1) * DAY_MS));
-  const to = formatXVisionDateTime(new Date(now + DAY_MS));
-  const payload = await xvisionGet<unknown>(
-    `/Data/GetTrips?ObjectID=${encodeURIComponent(objectId)}` +
-      `&FromDateTime=${encodeURIComponent(from)}&ToDateTime=${encodeURIComponent(to)}`,
-  );
   const cutoff = now - days * DAY_MS;
-  const trips = (Array.isArray(payload) ? payload : [])
-    .map((t) => (t && typeof t === "object" ? normalizeTrip(t as Record<string, unknown>) : null))
-    .filter((t): t is NormalizedTrip => t !== null)
-    .filter((t) => !t.startAt || Date.parse(t.startAt) >= cutoff)
-    .sort((a, b) => (b.startAt ?? "").localeCompare(a.startAt ?? ""));
+  const trips = (await fetchTripsInWindow(objectId, now - (days + 1) * DAY_MS, now + DAY_MS)).filter(
+    (t) => !t.startAt || Date.parse(t.startAt) >= cutoff,
+  );
+  tripsCache.set(key, trips);
+  return trips;
+}
+
+// Trips that start within one Central (account-timezone) calendar day, newest first.
+export async function getDeviceTripsForDay(objectId: string, date: string): Promise<NormalizedTrip[]> {
+  const key = `${objectId}:day:${date}`;
+  const cached = tripsCache.get(key);
+  if (cached) return cached;
+  const bounds = centralDayBounds(date);
+  const trips = tripsStartingIn(await fetchTripsInWindow(objectId, bounds.startMs - DAY_MS, bounds.endMs + DAY_MS), bounds);
   tripsCache.set(key, trips);
   return trips;
 }
@@ -63,12 +79,8 @@ async function mapLimit<T, R>(items: T[], limit: number, fn: (item: T) => Promis
 
 // Speed stats need each trip's points, fetched a few at a time. A failed points call leaves that trip's
 // speeds null ("—") and its distance on the API value rather than failing the list.
-export async function getTripSummaries(objectId: string, days: number): Promise<TripSummary[]> {
-  const key = `${objectId}:${days}`;
-  const cached = summariesCache.get(key);
-  if (cached) return cached;
-  const trips = await getDeviceTrips(objectId, days);
-  const summaries = await mapLimit(trips, 5, async (trip) => {
+async function summarizeAll(trips: NormalizedTrip[]): Promise<TripSummary[]> {
+  return mapLimit(trips, 5, async (trip) => {
     try {
       return summarizeTrip(trip, (await getTripPoints(trip.tripId)).points);
     } catch (err) {
@@ -76,6 +88,22 @@ export async function getTripSummaries(objectId: string, days: number): Promise<
       return summarizeTrip(trip, null);
     }
   });
+}
+
+export async function getTripSummaries(objectId: string, days: number): Promise<TripSummary[]> {
+  const key = `${objectId}:${days}`;
+  const cached = summariesCache.get(key);
+  if (cached) return cached;
+  const summaries = await summarizeAll(await getDeviceTrips(objectId, days));
+  summariesCache.set(key, summaries);
+  return summaries;
+}
+
+export async function getDayTripSummaries(objectId: string, date: string): Promise<TripSummary[]> {
+  const key = `${objectId}:day:${date}`;
+  const cached = summariesCache.get(key);
+  if (cached) return cached;
+  const summaries = await summarizeAll(await getDeviceTripsForDay(objectId, date));
   summariesCache.set(key, summaries);
   return summaries;
 }

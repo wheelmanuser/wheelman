@@ -14,6 +14,7 @@ export type TripPoint = {
   lng: number;
   speedMph: number | null;
   heading: number | null;
+  address: string | null;
 };
 
 export type TripEventCategory = "braking" | "acceleration" | "speeding" | "other";
@@ -25,6 +26,7 @@ export type TripEvent = {
   lat: number;
   lng: number;
   speedMph: number | null;
+  address: string | null;
 };
 
 export type TripSummary = {

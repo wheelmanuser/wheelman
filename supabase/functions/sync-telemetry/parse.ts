@@ -29,7 +29,7 @@ function chicagoOffsetMs(utcMs: number): number {
 
 // Two passes so the offset is taken at the real instant, not the wall-clock guess (matters near DST changes).
 // An ambiguous fall-back hour resolves to one of its two instants; a nonexistent spring-forward time shifts forward.
-function chicagoWallClockToUtcMs(wallAsUtcMs: number): number {
+export function chicagoWallClockToUtcMs(wallAsUtcMs: number): number {
   const firstGuess = wallAsUtcMs - chicagoOffsetMs(wallAsUtcMs);
   return wallAsUtcMs - chicagoOffsetMs(firstGuess);
 }

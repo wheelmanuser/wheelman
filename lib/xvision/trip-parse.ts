@@ -65,6 +65,7 @@ export function parseTripPoints(payload: unknown): { points: TripPoint[]; events
       lng: lng as number,
       speedMph: num(r.speed),
       heading: num(r.heading),
+      address: text(r.address ?? r.Address),
     });
   }
   points.sort((a, b) => (a.at && b.at ? a.at.localeCompare(b.at) : 0));
@@ -84,6 +85,7 @@ export function parseTripPoints(payload: unknown): { points: TripPoint[]; events
       lat,
       lng: lng as number,
       speedMph: num(r.Speed),
+      address: text(r.Address ?? r.address),
     });
   }
   return { points, events };

@@ -111,7 +111,7 @@ test("haversine: one degree of latitude is ~111.2 km / ~69.1 mi", () => {
 });
 
 function pt(sec: number, speed: number | null): TripPoint {
-  return { at: new Date(1792090000000 + sec * 1000).toISOString(), lat: 41.9, lng: -87.6, speedMph: speed, heading: null };
+  return { at: new Date(1792090000000 + sec * 1000).toISOString(), lat: 41.9, lng: -87.6, speedMph: speed, heading: null, address: null };
 }
 
 test("speed stats: max and a time-weighted average over irregular samples", () => {

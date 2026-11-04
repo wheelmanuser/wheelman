@@ -7,14 +7,14 @@ import type { TripEvent, TripPoint } from "@/lib/xvision/types";
 
 type Props = { points: TripPoint[]; events: TripEvent[]; height?: string };
 
-const EVENT_COLORS: Record<TripEvent["category"], string> = {
+export const EVENT_COLORS: Record<TripEvent["category"], string> = {
   braking: "#cf6679",
   acceleration: "#e6c364",
   speeding: "#e6c364",
   other: "#8a8f98",
 };
 
-function routeData(points: TripPoint[]) {
+export function routeData(points: TripPoint[]) {
   return {
     type: "Feature" as const,
     properties: {},

@@ -151,12 +151,14 @@ scripts/
   test-fleet.ts             — node:test: fleet status, counts, last seen, map view      (npx tsx --test scripts/test-fleet.ts)
   test-trips.ts             — node:test: trip parsing, units, stats, ownership check     (npx tsx --test scripts/test-trips.ts)
   test-trip-day.ts          — node:test: Central-day bounds (incl. DST), date param, totals, Find time, timeline, waypoint rows (npx tsx --test scripts/test-trip-day.ts)
+  test-vehicle-info.ts      — node:test: VIN validation/display/mismatch, odometer rules, vPIC mapping, device→vehicle updates (npx tsx --test scripts/test-vehicle-info.ts)
   check-xvision-trips.ts    — live read-only check of trip units/timezone
   test-visible-interval.ts  — node:test: pause/resume interval on tab visibility        (npx tsx --test scripts/test-visible-interval.ts)
 
 supabase/
   functions/
     sync-telemetry/         — Deno edge function; polls xVision, writes vehicle_telemetry
+      vehicle-info.ts       — shared (Deno + Next) device→vehicle rules: VIN, odometer, vPIC decode
                               (not part of the Next.js tsconfig — see supabase/functions exclude)
 ```
 
@@ -180,6 +182,12 @@ supabase/
 - **Speed units:** the device `Speed` (GetDevices → `vehicle_telemetry.speed`) is **mph** (account units) — verified: reported speed ÷ GPS-derived km/h between consecutive fixes has median 0.68 over 247 driving legs (mph = 0.62, km/h ≈ 1.0). `formatTelemetrySpeed` assumes mph; Trips uses the same formatter.
 - **Customer scoping:** `GET /Customer/GetCustomers` → customer ID; `lib/xvision/devices.ts` uses it automatically if exactly one customer comes back (else set optional `XVISION_CUSTOMER_ID`).
 - **Key endpoint:** `GET /Device/GetDevices?CustomerID=<id>` → per device: ObjectID (xVision UUID), IMEI, SerialNo, VIN, DeviceName, Speed, Lat, Lng, Address, IsOnline (1/0), Ignition (0/1), LastContact (`MM/DD/YYYY hh:mm:ss AM`, no timezone — assumed UTC, TODO confirm with xVision)
+- **Device name in the UI:** the WhereQube hardware is branded **"WheelMan Connect Pro"** in every user-facing string (WHE-37). Code comments, docs and identifiers still say WhereQube (the vendor).
+- **Device → vehicle record (WHE-26, `supabase/functions/sync-telemetry/vehicle-info.ts`, used by both the sync and `POST /api/xvision/apply-device-info`, which the link drawer calls right after linking):**
+  - VIN: the device VIN (GetDevices `VIN`, also stored in `vehicle_telemetry.raw`) is written to `vehicles.vin` only when the record's VIN is blank or not a valid VIN (17 chars, no I/O/Q). A different *valid* record VIN is kept; the UI flags the mismatch.
+  - Writing a VIN is the one moment it is decoded with NHTSA vPIC (`DecodeVinValues`, server-side, no key): year/make/model are overwritten (make casing normalized), the nickname is never touched. Trim: kept if the user entered one and the decode is the same make/model; otherwise vPIC's trim, or cleared when the car changed. The record's VIN doubles as "last decoded VIN". If the vPIC request fails, the VIN isn't written either, so the next sync retries; if vPIC has no data, the VIN is stored and nothing else changes.
+  - Odometer: `vehicles.odometer_miles` follows the device in whole miles with `odometer_source = 'device'`; the first device reading replaces a manual value (even a higher one), after that it only moves forward; null readings change nothing. While a device is linked the edit form shows the odometer read-only ("Synced from WheelMan Connect Pro") and doesn't save it.
+- **VIN display (WHE-39):** `components/telematics/VinTag.tsx` on the live page Overview header and the vehicle Telematics tab — device VIN first (from the newest telemetry row's `raw->>VIN`, selected as `device_vin` in `loadFleet`), record VIN as fallback, "Doesn't match vehicle record" when both exist and differ; copy button.
 - **Device linking:** the link drawer loads `/api/xvision/devices` (auth required) and shows a dropdown; a device whose VIN matches the vehicle is preselected. Stores ObjectID + IMEI in `vehicle_devices`. Note: this lists every device on the shared xVision account to any signed-in user.
 - **Credentials:** stored in `.env.local` as `XVISION_API_URL`, `XVISION_EMAIL`, `XVISION_PASSWORD`
 - **Status:** Login/refresh verified on the dev API. Prod host + CustomerID flow implemented and mock-tested; needs a live run with prod credentials: `npx tsx --env-file=.env.local scripts/test-xvision.ts`. Flow inferred from the xVision web app's own client, not official docs.

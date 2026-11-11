@@ -80,7 +80,7 @@ export function TelematicsClient({ vehicles, telemetryMap, deviceMap }: Props) {
 
       {allDisconnected && (
         <div className="label-technical border border-dashed border-wm-border p-6 text-center text-wm-text3">
-          No devices linked yet — go to a vehicle&apos;s Telematics tab to link a WhereQube device.
+          No devices linked yet — go to a vehicle&apos;s Telematics tab to link a WheelMan Connect Pro.
         </div>
       )}
 

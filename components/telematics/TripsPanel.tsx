@@ -123,7 +123,7 @@ export function TripsPanel({ vehicleId, distanceUnit, hasDevice }: Props) {
   if (!hasDevice) {
     return (
       <div className="border border-dashed border-wm-border p-6 text-center label-technical text-wm-text3">
-        Link a WhereQube device on the Telematics tab to see trips.
+        Link a WheelMan Connect Pro on the Telematics tab to see trips.
       </div>
     );
   }

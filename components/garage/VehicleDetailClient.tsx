@@ -23,6 +23,8 @@ import { useVisibleInterval } from "@/components/telematics/useVisibleInterval";
 import { formatDeviceBattery, formatFuelLevel, formatMpg, formatVolts } from "@/lib/telemetry-display";
 import { MapErrorBoundary } from "@/components/telematics/MapErrorBoundary";
 import { TripsPanel } from "@/components/telematics/TripsPanel";
+import { VinTag } from "@/components/telematics/VinTag";
+import { deviceVinFromRaw } from "@/supabase/functions/sync-telemetry/vehicle-info";
 import type { Vehicle, VehicleDevice, VehicleTelemetry } from "@/types/database";
 import type { XVisionDeviceOption } from "@/lib/xvision/types";
 
@@ -416,6 +418,18 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
       return;
     }
 
+    // WHE-26: copy the device's VIN (and year/make/model decoded from it) and odometer into this vehicle now,
+    // rather than waiting for the next sync. Best effort: the sync applies the same rules every minute anyway.
+    try {
+      await fetch("/api/xvision/apply-device-info", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ vehicleId: vehicle.id }),
+      });
+    } catch {
+      // the next sync will catch up
+    }
+
     closeLinkDrawer();
     router.refresh();
     setLinking(false);
@@ -504,7 +518,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
             ? "label-technical border border-wm-accent/30 px-2 py-1 text-wm-accent"
             : "label-technical border border-wm-border px-2 py-1 text-wm-text3"
           }>
-            {hasDevice ? "WhereQube" : "No Device"}
+            {hasDevice ? "WheelMan Connect Pro" : "No Device"}
           </span>
         </div>
         <div className="flex flex-col items-center text-center">
@@ -670,7 +684,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                     Connected
                   </span>
                   <div className="text-sm text-wm-text">
-                    <span className="font-medium">{device.device_name || "WhereQube Device"}</span>
+                    <span className="font-medium">{device.device_name || "WheelMan Connect Pro"}</span>
                     <span className="ml-2 font-mono text-xs text-wm-text3">{device.object_id}</span>
                   </div>
                 </div>
@@ -689,7 +703,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                   onClick={openLinkDrawer}
                   className="label-technical border border-wm-accent bg-transparent px-4 py-2 text-wm-accent transition-colors hover:bg-wm-accent hover:text-wm-bg"
                 >
-                  Link WhereQube Device
+                  Link WheelMan Connect Pro
                 </button>
               </div>
             )}
@@ -723,6 +737,12 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                     Refresh
                   </button>
                 </div>
+
+                <VinTag
+                  deviceVin={deviceVinFromRaw(telemetry?.raw)}
+                  recordVin={vehicle.vin}
+                  className="mt-4 border-t border-wm-border pt-4"
+                />
 
                 <div className="mt-6 grid grid-cols-2 gap-4 text-left">
                   {telemetryMetrics.map(({ icon, label, value, sub }) => (
@@ -764,7 +784,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                 <Icon name="sensors" className="mb-4 text-wm-accent" size={48} />
                 <h3 className="font-headline text-xl uppercase tracking-wide text-wm-text">Live Telematics</h3>
                 <p className="mx-auto mt-2 max-w-sm text-sm text-wm-text2">
-                  Real-time OBD-II data, GPS tracking, and vehicle health diagnostics. Connect WhereQube device to unlock this feature.
+                  Real-time OBD-II data, GPS tracking, and vehicle health diagnostics. Connect a WheelMan Connect Pro to unlock this feature.
                 </p>
                 <div className="mt-8 grid grid-cols-2 gap-4 text-left">
                   {[
@@ -785,7 +805,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
                   ))}
                 </div>
                 <div className="mt-8 border border-dashed border-wm-border p-4">
-                  <span className="label-technical text-wm-accent">WhereQube Integration — Coming in v2</span>
+                  <span className="label-technical text-wm-accent">WheelMan Connect Pro — Coming in v2</span>
                   <p className="mt-2 text-xs text-wm-text3">Plug-and-play OBD-II adapter with real-time cloud sync.</p>
                 </div>
               </div>
@@ -1040,7 +1060,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
           />
           <aside className="carbon-texture fixed inset-y-0 right-0 z-50 flex w-full max-w-md flex-col border-l border-wm-border bg-wm-s1 p-6 shadow-xl">
             <div className="flex items-center justify-between">
-              <h3 className="font-headline text-xl tracking-wide text-wm-text">Link WhereQube Device</h3>
+              <h3 className="font-headline text-xl tracking-wide text-wm-text">Link WheelMan Connect Pro</h3>
               <button type="button" onClick={closeLinkDrawer} className="text-wm-text2 hover:text-wm-text"><Icon name="close" size={20} /></button>
             </div>
 
@@ -1052,7 +1072,7 @@ export function VehicleDetailClient({ vehicle, hasDevice, device, initialSchedul
               }}
             >
               <label className="block text-sm">
-                <span className="text-wm-text2">WhereQube Device</span>
+                <span className="text-wm-text2">WheelMan Connect Pro</span>
                 <select
                   className="mt-1 w-full rounded-md border border-wm-border bg-wm-s2 px-3 py-2 text-wm-text disabled:opacity-60"
                   value={selectedObjectId}

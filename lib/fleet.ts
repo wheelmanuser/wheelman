@@ -8,7 +8,7 @@ export async function loadFleet(supabase: SupabaseClient, vehicleId?: string): P
   let query = supabase
     .from("vehicles")
     .select(
-      `id, year, make, model, nickname, created_at, vehicle_devices(id, device_name), vehicle_telemetry(${FLEET_TELEMETRY_COLUMNS.join(", ")})`,
+      `id, year, make, model, nickname, vin, created_at, vehicle_devices(id, device_name), vehicle_telemetry(${FLEET_TELEMETRY_COLUMNS.join(", ")}, device_vin:raw->>VIN)`,
     )
     .order("created_at", { ascending: false })
     .order("recorded_at", { referencedTable: "vehicle_telemetry", ascending: false })

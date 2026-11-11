@@ -1,6 +1,7 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { checkAuthorization } from "./auth.ts";
 import { applyObdFallback, DEDUPE_FIELDS, isDuplicateReading, OBD_FIELDS, toTelemetryRow } from "./parse.ts";
+import { resolveDeviceUpdate, type VehicleRecord } from "./vehicle-info.ts";
 
 const XVISION_API_URL = Deno.env.get("XVISION_API_URL")!;
 const XVISION_EMAIL = Deno.env.get("XVISION_EMAIL")!;
@@ -184,5 +185,55 @@ Deno.serve(async (req) => {
     }
   }
 
-  return json({ synced: inserts.length, skipped }, 200);
+  const vehiclesUpdated = await updateVehiclesFromDevices(supabase, matched, readings);
+
+  return json({ synced: inserts.length, skipped, vehiclesUpdated }, 200);
 });
+
+// WHE-26: the device's VIN and odometer flow into the vehicle record (VIN only when the record has none or an
+// invalid one, which also triggers a one-off vPIC decode of year/make/model; odometer forward-only once
+// device-sourced). Failures are logged and never fail the sync.
+async function updateVehiclesFromDevices(
+  // The service-role client; untyped (no generated DB types in the edge function), like the rest of this file.
+  // deno-lint-ignore no-explicit-any
+  supabase: any,
+  matched: { linked: { vehicle_id: string; user_id: string; object_id: string }; device: any }[],
+  readings: { vehicle_id: string; odometer_miles?: number | null }[],
+): Promise<number> {
+  if (!matched.length) return 0;
+  const { data: vehicles, error } = await supabase
+    .from("vehicles")
+    .select("id, user_id, vin, year, make, model, trim, odometer_miles, odometer_source")
+    .in("id", matched.map(({ linked }) => linked.vehicle_id));
+  if (error) {
+    console.error("[sync-telemetry] could not load vehicles for device updates:", error);
+    return 0;
+  }
+  const byId = new Map<string, any>((vehicles ?? []).map((v: any) => [v.id, v]));
+  const odometerById = new Map(readings.map((r) => [r.vehicle_id, r.odometer_miles ?? null]));
+
+  let updated = 0;
+  for (const { linked, device } of matched) {
+    const vehicle = byId.get(linked.vehicle_id);
+    if (!vehicle || vehicle.user_id !== linked.user_id) continue;
+    const update = await resolveDeviceUpdate(
+      vehicle as VehicleRecord,
+      { vin: device.VIN, odometerMiles: odometerById.get(linked.vehicle_id) },
+      undefined,
+      (message) => console.log(`[sync-telemetry] vehicle ${linked.vehicle_id}: ${message}`),
+    );
+    if (!Object.keys(update).length) continue;
+    const { error: updateError } = await supabase
+      .from("vehicles")
+      .update(update)
+      .eq("id", linked.vehicle_id)
+      .eq("user_id", linked.user_id);
+    if (updateError) {
+      console.error(`[sync-telemetry] vehicle ${linked.vehicle_id} update failed:`, updateError);
+      continue;
+    }
+    console.log(`[sync-telemetry] vehicle ${linked.vehicle_id} updated: ${Object.keys(update).join(", ")}`);
+    updated++;
+  }
+  return updated;
+}

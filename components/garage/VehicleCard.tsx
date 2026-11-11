@@ -27,7 +27,7 @@ export function VehicleCard({
       className="block border border-wm-border border-l-2 border-l-wm-accent/40 bg-gradient-to-br from-wm-s1 to-wm-s2 p-5 transition-colors hover:border-wm-accent/60 hover:border-l-wm-accent"
     >
       <div className="flex items-start justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           <h3 className="text-lg font-light tracking-wide text-wm-text">{title}</h3>
           <p className="mt-1 text-sm uppercase tracking-wider text-wm-text3">
             {vehicle.color ?? "Colour N/A"} ·{" "}
@@ -37,11 +37,11 @@ export function VehicleCard({
         <span
           className={
             hasDevice
-              ? "border border-wm-accent/30 px-2 py-0.5 text-xs uppercase tracking-widest text-wm-accent"
-              : "border border-wm-border px-2 py-0.5 text-xs uppercase tracking-widest text-wm-text3"
+              ? "shrink-0 whitespace-nowrap border border-wm-accent/30 px-2 py-0.5 text-xs uppercase tracking-widest text-wm-accent"
+              : "shrink-0 whitespace-nowrap border border-wm-border px-2 py-0.5 text-xs uppercase tracking-widest text-wm-text3"
           }
         >
-          {hasDevice ? "WhereQube Connected" : "No Device"}
+          {hasDevice ? "WheelMan Connect Pro" : "No Device"}
         </span>
       </div>
 

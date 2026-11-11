@@ -155,7 +155,7 @@ test("toFleetVehicle: missing numbers stay null, never 0", () => {
 
 function vehicle(id: string, status: FleetVehicle["status"], lat: number | null, lng: number | null, hasDevice = true): FleetVehicle {
   return {
-    id, name: id, year: 2020, make: "X", model: "Y", nickname: null, hasDevice, deviceName: null,
+    id, name: id, year: 2020, make: "X", model: "Y", nickname: null, hasDevice, deviceName: null, recordVin: null, deviceVin: null,
     telemetry: lat === null ? null : t({ latitude: lat, longitude: lng }), status,
   };
 }

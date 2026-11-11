@@ -6,6 +6,8 @@ import { useState } from "react";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { createClient } from "@/lib/supabase/client";
+import { useUserSettings } from "@/contexts/UserSettingsContext";
+import { formatDistance } from "@/lib/format-distance";
 import {
   vehicleFormSchema,
   VEHICLE_FORM_FIELDS,
@@ -15,10 +17,13 @@ import type { Vehicle } from "@/types/database";
 
 type Props = {
   vehicle: Vehicle;
+  hasDevice?: boolean;
 };
 
-export function VehicleEditForm({ vehicle }: Props) {
+export function VehicleEditForm({ vehicle, hasDevice = false }: Props) {
   const router = useRouter();
+  const { settings } = useUserSettings();
+  const distanceUnit = settings.distance_unit ?? "miles";
   const supabase = createClient();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -48,6 +53,10 @@ export function VehicleEditForm({ vehicle }: Props) {
     setSubmitError(null);
     try {
       const odometerValue = odometer.trim() !== "" ? Number(odometer) : null;
+      // A linked device owns the odometer; saving the form must not overwrite it with a manual value.
+      const odometerFields = hasDevice
+        ? {}
+        : { odometer_miles: odometerValue, odometer_source: odometerValue != null ? "manual" : null };
 
       const { error } = await supabase
         .from("vehicles")
@@ -62,8 +71,7 @@ export function VehicleEditForm({ vehicle }: Props) {
           vin: values.vin || null,
           purchase_price: values.purchase_price ?? null,
           estimated_miles_per_year: values.estimated_miles_per_year ?? null,
-          odometer_miles: odometerValue,
-          odometer_source: odometerValue != null ? "manual" : null,
+          ...odometerFields,
         })
         .eq("id", vehicle.id);
 
@@ -113,19 +121,34 @@ export function VehicleEditForm({ vehicle }: Props) {
         {/* Odometer — kept separate since it lives outside the shared schema */}
         <label className="block">
           <span className="label-technical mb-1 block text-wm-text3">Current Odometer</span>
-          <input
-            type="number"
-            value={odometer}
-            onChange={(e) => setOdometer(e.target.value)}
-            placeholder="e.g. 45000"
-            className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
-          />
-          <span className="mt-1 block text-xs text-wm-text3">
-            Enter your current mileage — this is used to calculate service reminder status
-          </span>
-          <span className="label-technical mt-1 block text-wm-text3">
-            Paid plan: odometer syncs automatically from your WhereQube device
-          </span>
+          {hasDevice ? (
+            <>
+              <input
+                type="text"
+                value={formatDistance(vehicle.odometer_miles, distanceUnit)}
+                readOnly
+                aria-readonly="true"
+                className="w-full cursor-not-allowed rounded-sm border border-wm-border bg-wm-s3 px-3 py-2 text-sm text-wm-text2 outline-none"
+              />
+              <span className="label-technical mt-1 block text-wm-accent">Synced from WheelMan Connect Pro</span>
+            </>
+          ) : (
+            <>
+              <input
+                type="number"
+                value={odometer}
+                onChange={(e) => setOdometer(e.target.value)}
+                placeholder="e.g. 45000"
+                className="w-full rounded-sm border border-wm-border bg-wm-s2 px-3 py-2 text-sm text-wm-text outline-none focus:border-wm-accent"
+              />
+              <span className="mt-1 block text-xs text-wm-text3">
+                Enter your current mileage — this is used to calculate service reminder status
+              </span>
+              <span className="label-technical mt-1 block text-wm-text3">
+                Paid plan: odometer syncs automatically from your WheelMan Connect Pro
+              </span>
+            </>
+          )}
         </label>
 
         <label className="block">

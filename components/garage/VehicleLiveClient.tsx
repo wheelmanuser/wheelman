@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Icon } from "@/components/ui/Icon";
 import { MapErrorBoundary } from "@/components/telematics/MapErrorBoundary";
+import { VinTag } from "@/components/telematics/VinTag";
 import { CheckEngineStatus } from "@/components/telematics/CheckEngineStatus";
 import { useCheckEngine } from "@/components/telematics/useCheckEngine";
 import { useVisibleInterval } from "@/components/telematics/useVisibleInterval";
@@ -238,6 +239,7 @@ export function VehicleLiveClient({ initialVehicle }: { initialVehicle: FleetVeh
                     {t?.last_contact ? ` · ${new Date(t.last_contact).toLocaleString()}` : ""}
                   </p>
                 )}
+                <VinTag deviceVin={vehicle.deviceVin} recordVin={vehicle.recordVin} className="mt-1.5" />
               </div>
             </div>
           </div>

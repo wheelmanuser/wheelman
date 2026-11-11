@@ -128,7 +128,7 @@ export function FleetOverview({ initialVehicles, initialError = false }: Props) 
               <Icon name="map" size={28} className="text-wm-text3" />
               <p className="label-technical text-wm-text3">
                 {counts.devices === 0
-                  ? "Link a WhereQube device to see your cars on the map"
+                  ? "Link a WheelMan Connect Pro to see your cars on the map"
                   : "No location reported yet"}
               </p>
             </div>

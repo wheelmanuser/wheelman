@@ -48,6 +48,9 @@ export type FleetVehicle = {
   nickname: string | null;
   hasDevice: boolean;
   deviceName: string | null;
+  // WHE-39: the vehicle record's VIN and the VIN its device reports (newest telemetry row's raw.VIN).
+  recordVin: string | null;
+  deviceVin: string | null;
   telemetry: FleetTelemetry | null;
   status: FleetStatus;
 };
@@ -169,6 +172,8 @@ export function toFleetVehicle(row: Record<string, unknown>): FleetVehicle {
     ...vehicle,
     hasDevice,
     deviceName: device ? str(device.device_name) : null,
+    recordVin: str(row.vin),
+    deviceVin: t ? str(t.device_vin) : null,
     telemetry,
     status: fleetStatus(hasDevice, telemetry),
   };
